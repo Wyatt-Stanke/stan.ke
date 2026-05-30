@@ -1,0 +1,25 @@
+---
+interface Props {
+	date: Date;
+	format?: "YYYY-MM" | "YYYY-MM-DD";
+	fullDateOnHover?: boolean;
+}
+
+const { date, format = "YYYY-MM-DD", fullDateOnHover = false } = Astro.props;
+
+const formatDate = (d: Date, fmt: string) => {
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+
+	if (fmt === "YYYY-MM") return `${year}-${month}`;
+	return `${year}-${month}-${day}`;
+};
+---
+
+<time
+	datetime={date.toISOString()}
+	title={fullDateOnHover ? formatDate(date, "YYYY-MM-DD") : undefined}
+>
+	{formatDate(date, format)}
+</time>
