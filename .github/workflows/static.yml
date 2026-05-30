@@ -41,8 +41,10 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: pnpm ci
+        working-directory: ./astro
       - name: Build
         run: pnpm build
+        working-directory: ./astro
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
