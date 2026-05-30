@@ -20,9 +20,17 @@ const posts = (await getCollection("blog")).sort(
 				display: flex;
 				gap: 2rem;
 			}
-			.sidebar {
+			.sidecard {
 				width: 33%;
 				font-family: var(--font-shantell-sans);
+				padding: 1em;
+				background: rgb(var(--gray-light));
+				/* Rotate the sidecard 3 degrees counter-clockwise */
+				transform: rotate(-8deg) skewX(-8deg);
+				/* Add a subtle shadow to give it some depth */
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				/* Add a border to make it stand out more */
+				border: 2px solid var(--accent);
 			}
 			.content {
 				width: 67%;
@@ -80,7 +88,7 @@ const posts = (await getCollection("blog")).sort(
 	</head>
 	<body>
 		<main>
-			<section class="sidebar">
+			<section class="sidecard">
 				<h1>{SITE_TITLE}</h1>
 				<p>{SITE_DESCRIPTION}</p>
 			</section>
