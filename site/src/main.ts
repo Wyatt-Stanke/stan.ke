@@ -11,8 +11,14 @@ if (!grid) {
 
 function cellSizePx(): [number, number] {
 	const probe = document.createElement("span");
-	probe.style.cssText =
-		"position:absolute;visibility:hidden;font-family:inherit;font-size:var(--cell-height);line-height:1;margin:0;padding:0;letter-spacing:0;white-space:pre;";
+	const gridStyle = window.getComputedStyle(grid);
+	probe.style.fontFamily = gridStyle.fontFamily;
+	probe.style.fontSize = gridStyle.fontSize;
+	probe.style.lineHeight = gridStyle.lineHeight;
+	probe.style.letterSpacing = gridStyle.letterSpacing;
+	probe.style.position = "absolute";
+	probe.style.visibility = "hidden";
+	probe.style.whiteSpace = "pre";
 	probe.textContent = "X";
 	document.body.appendChild(probe);
 	const rect = probe.getBoundingClientRect();
@@ -72,6 +78,10 @@ function writeTextWithNewlines(x: number, y: number, text: string): void {
 // Global text strings
 let titleText = "";
 let postsRendered: { title: string; dek: string }[] = [];
+const FONT_HEIGHT = Number.parseInt(
+	graceful.split("\n")[0].trim().split(/\s+/)[2],
+	10,
+);
 
 async function initText() {
 	figlet.parseFont("Graceful", graceful);
@@ -144,6 +154,12 @@ function drawPosts() {
 			updateTile(x, y, " ");
 		}
 	}
+
+	const totalHeight = postsRendered.length * 10;
+	// limit scrollPos
+	const maxScroll = Math.max(0, totalHeight - ROWS);
+	if (scrollPos > maxScroll) scrollPos = maxScroll;
+
 	const startY = -Math.floor(scrollPos);
 	for (let i = 0; i < postsRendered.length; i++) {
 		const y = startY + i * 10; // spacing between posts
@@ -154,9 +170,31 @@ function drawPosts() {
 		);
 		writeTextWithNewlines(
 			COLS - 2 * Math.floor(COLS / 3) + 2,
-			y + 5,
+			y + FONT_HEIGHT + 1,
 			postsRendered[i].dek,
 		);
+	}
+
+	// Draw scroll bar
+	const scrollPercent = scrollPos / Math.max(1, maxScroll);
+	const scrollBarHeight = Math.max(
+		(ROWS / Math.max(ROWS, totalHeight)) * ROWS,
+		1,
+	);
+	const scrollBarStart = scrollPercent * (ROWS - scrollBarHeight);
+	for (let y = 0; y < ROWS; y++) {
+		const start = Math.floor(scrollBarStart);
+		const end = Math.floor(scrollBarStart + scrollBarHeight) - 1;
+
+		if (y < start || y > end) {
+			updateTile(COLS - 1, y, "|");
+		} else if (y === start) {
+			updateTile(COLS - 1, y, "n");
+		} else if (y === end) {
+			updateTile(COLS - 1, y, "u");
+		} else {
+			updateTile(COLS - 1, y, "#");
+		}
 	}
 }
 
@@ -167,6 +205,9 @@ function drawAll() {
 	render();
 }
 
-// Initial bootstrap
+try {
+	await document.fonts.load('1rem "Linux Libertine Mono"');
+} catch (_) {}
+await document.fonts.ready;
 await initText();
 build();
