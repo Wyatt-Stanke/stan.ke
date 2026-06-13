@@ -68,6 +68,7 @@ const posts = (await getCollection("blog")).sort(
 				color: inherit;
 				line-height: 1;
 				display: inline;
+				margin-bottom: 0;
 			}
 			.date {
 				margin: 0;
@@ -84,6 +85,13 @@ const posts = (await getCollection("blog")).sort(
 					width: 35%;
 				}
 			}
+			.dek {
+				margin: 0;
+				color: var(--gray);
+				font-style: italic;
+				font-size: 0.8em;
+				margin-top: 0;
+			}
 		</style>
 	</head>
 	<body>
@@ -96,25 +104,38 @@ const posts = (await getCollection("blog")).sort(
 				<table>
 					<tbody>
 						{
-							posts.map((post) => (
-								<tr>
-									<td>
-										<a href={`/blog/${post.id}/`}>
-											<h4 class="title">
-												{post.data.title}
-											</h4>
-										</a>
-									</td>
-									<td>
-										<p class="date">
-											<FormattedDate
-												date={post.data.pubDate}
-												format="YYYY-MM-DD"
-											/>
-										</p>
-									</td>
-								</tr>
-							))
+							posts
+								.filter((post) => !post.data.hidden)
+								.map((post) => (
+									<>
+										<tr>
+											<td>
+												<a href={`/blog/${post.id}/`}>
+													<h4 class="title">
+														{post.data.title}
+													</h4>
+												</a>
+											</td>
+											<td>
+												<p class="date">
+													<FormattedDate
+														date={post.data.pubDate}
+														format="YYYY-MM-DD"
+													/>
+												</p>
+											</td>
+										</tr>
+										{post.data.dek && (
+											<tr>
+												<td colspan="2">
+													<p class="dek">
+														{post.data.dek}
+													</p>
+												</td>
+											</tr>
+										)}
+									</>
+								))
 						}
 					</tbody>
 				</table>
