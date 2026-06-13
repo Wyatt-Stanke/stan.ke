@@ -109,6 +109,20 @@ window.addEventListener("wheel", (ev) => {
 	});
 });
 
+// arrow keys or vim keys (if you're nasty like that)
+window.addEventListener("keydown", (ev) => {
+	if (ev.key === "ArrowUp" || ev.key === "k") {
+		scrollPos = Math.max(0, scrollPos - 3);
+	} else if (ev.key === "ArrowDown" || ev.key === "j") {
+		scrollPos += 3;
+	}
+	cancelAnimationFrame(raf);
+	raf = requestAnimationFrame(() => {
+		drawPosts();
+		render();
+	});
+});
+
 function drawLeftPane() {
 	const leftCols = Math.floor(COLS / 3);
 	for (let y = 0; y < ROWS; y++) {
