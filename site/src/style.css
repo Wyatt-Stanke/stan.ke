@@ -1,0 +1,39 @@
+:root {
+	--cell-width: 0.6rem;
+	--cell-height: 1rem;
+	--text-color: #000;
+	--background: #fff;
+	--contain: layout style;
+	/* --contain: layout style paint; */
+}
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+	width: 100%;
+	background: var(--background);
+	color: var(--text-color);
+	font-family:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+		"Liberation Mono", "Courier New", monospace;
+}
+
+.grid {
+	display: block;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	font-size: var(--cell-height);
+	line-height: var(--cell-height);
+	white-space: pre;
+	overflow: hidden;
+	contain: strict;
+	user-select: none;
+}
+
+#app {
+	width: 100%;
+	height: 100%;
+}
