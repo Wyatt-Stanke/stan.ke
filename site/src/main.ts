@@ -120,14 +120,18 @@ function postTitleWidth(): number {
 	return max;
 }
 
+function splitLeftCols(): number {
+	const minLeft = titleWidth() + 3;
+	const maxLeft = COLS - postTitleWidth() - 3;
+	const preferred = Math.floor(COLS / 3);
+	return Math.min(Math.max(preferred, minLeft), maxLeft);
+}
+
 function chooseLayout(): LayoutMode {
 	const titleW = titleWidth();
 	const postW = postTitleWidth();
 	if (titleW === 0 || postW === 0) return "stack";
-	const leftCols = Math.floor(COLS / 3);
-	const rightCols = COLS - leftCols;
-	// Need room for the title in the left pane and post titles in the right pane.
-	return leftCols >= titleW + 4 && rightCols >= postW + 4 ? "split" : "stack";
+	return COLS >= titleW + postW + 6 ? "split" : "stack";
 }
 
 // Rebuild on resize
@@ -195,7 +199,7 @@ window.addEventListener("keydown", (ev) => {
 });
 
 function drawLeftPane() {
-	const leftCols = Math.floor(COLS / 3);
+	const leftCols = splitLeftCols();
 	for (let y = 0; y < ROWS; y++) {
 		for (let x = 0; x < leftCols; x++) {
 			if (y === 0 || y === ROWS - 1 || x === 0 || x === leftCols - 1) {
@@ -235,7 +239,10 @@ function drawScrollBar(
 	column: number,
 ) {
 	const scrollPercent = scroll / Math.max(1, total - count);
-	const scrollBarHeight = Math.max((count / Math.max(count, total)) * count, 1);
+	const scrollBarHeight = Math.max(
+		(count / Math.max(count, total)) * count,
+		1,
+	);
 	const scrollBarStart = scrollPercent * (count - scrollBarHeight);
 	for (let i = 0; i < count; i++) {
 		const s = Math.floor(scrollBarStart);
@@ -283,8 +290,8 @@ function drawPostList(x: number, y: number, width: number, height: number) {
 
 function drawPosts() {
 	if (layoutMode === "split") {
-		const rightStart = COLS - 2 * Math.floor(COLS / 3);
-		const contentWidth = Math.max(1, COLS - rightStart - 2);
+		const rightStart = splitLeftCols();
+		const contentWidth = Math.max(1, COLS - rightStart - 3);
 
 		for (let y = 0; y < ROWS; y++) {
 			for (let x = rightStart; x < COLS; x++) {
