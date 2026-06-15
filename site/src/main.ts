@@ -30,6 +30,10 @@ let COLS = 0;
 let ROWS = 0;
 let tiles: string[] = [];
 
+type LayoutMode = "split" | "stack";
+let layoutMode: LayoutMode = "split";
+let headerBottom = 0;
+
 const idx = (x: number, y: number) => y * COLS + x;
 
 // Renders the virtual grid to the DOM
@@ -50,6 +54,7 @@ function build(): void {
 
 	COLS = cols;
 	ROWS = rows;
+	layoutMode = chooseLayout();
 
 	tiles = new Array(COLS * ROWS).fill(" ");
 
@@ -76,6 +81,11 @@ function writeTextWithNewlines(x: number, y: number, text: string): void {
 }
 
 // Global text strings
+const PLAIN_TITLE = "Wyatt Stanke";
+const testPosts = Array.from({ length: 10 }, (_, i) => ({
+	title: `test post ${i + 1}`,
+	dek: `Description for test post ${i + 1}`,
+}));
 let titleText = "";
 let postsRendered: { title: string; dek: string }[] = [];
 const FONT_HEIGHT = Number.parseInt(
@@ -87,17 +97,37 @@ async function initText() {
 	figlet.parseFont("Graceful", graceful);
 	titleText = await figlet.text("Wyatt\nStanke", { font: "Graceful" });
 
-	const testPosts = Array.from({ length: 10 }, (_, i) => ({
-		title: `test post ${i + 1}`,
-		dek: `Description for test post ${i + 1}`,
-	}));
-
 	postsRendered = await Promise.all(
 		testPosts.map(async (post) => ({
 			title: await figlet.text(post.title, { font: "Graceful" }),
 			dek: post.dek,
 		})),
 	);
+}
+
+function titleWidth(): number {
+	if (!titleText) return 0;
+	return Math.max(...titleText.split("\n").map((line) => line.length));
+}
+
+function postTitleWidth(): number {
+	let max = 0;
+	for (const post of postsRendered) {
+		for (const line of post.title.split("\n")) {
+			if (line.length > max) max = line.length;
+		}
+	}
+	return max;
+}
+
+function chooseLayout(): LayoutMode {
+	const titleW = titleWidth();
+	const postW = postTitleWidth();
+	if (titleW === 0 || postW === 0) return "stack";
+	const leftCols = Math.floor(COLS / 3);
+	const rightCols = COLS - leftCols;
+	// Need room for the title in the left pane and post titles in the right pane.
+	return leftCols >= titleW + 4 && rightCols >= postW + 4 ? "split" : "stack";
 }
 
 // Rebuild on resize
@@ -118,6 +148,37 @@ window.addEventListener("wheel", (ev) => {
 		render();
 	});
 });
+
+// Touch drag scrolling for mobile
+let lastTouchY = 0;
+window.addEventListener(
+	"touchstart",
+	(ev) => {
+		if (ev.touches.length > 0) {
+			lastTouchY = ev.touches[0].clientY;
+		}
+	},
+	{ passive: true },
+);
+
+window.addEventListener(
+	"touchmove",
+	(ev) => {
+		if (ev.touches.length === 0) return;
+		const y = ev.touches[0].clientY;
+		const delta = lastTouchY - y;
+		lastTouchY = y;
+
+		scrollPos = Math.max(0, scrollPos + delta / 10);
+
+		cancelAnimationFrame(raf);
+		raf = requestAnimationFrame(() => {
+			drawPosts();
+			render();
+		});
+	},
+	{ passive: true },
+);
 
 // arrow keys or vim keys (if you're nasty like that)
 window.addEventListener("keydown", (ev) => {
@@ -147,60 +208,118 @@ function drawLeftPane() {
 	}
 }
 
-function drawPosts() {
-	// clear right pane area entirely
-	for (let y = 0; y < ROWS; y++) {
-		for (let x = COLS - 2 * Math.floor(COLS / 3); x < COLS; x++) {
-			updateTile(x, y, " ");
+function drawHeader() {
+	headerBottom = 0;
+	const lines = [PLAIN_TITLE];
+	const bottomBorder = lines.length + 1;
+
+	for (let x = 0; x < COLS; x++) {
+		updateTile(x, 0, "X");
+		if (bottomBorder < ROWS) {
+			updateTile(x, bottomBorder, "X");
 		}
 	}
 
-	const totalHeight = postsRendered.length * 10;
-	// limit scrollPos
-	const maxScroll = Math.max(0, totalHeight - ROWS);
-	if (scrollPos > maxScroll) scrollPos = maxScroll;
-
-	const startY = -Math.floor(scrollPos);
-	for (let i = 0; i < postsRendered.length; i++) {
-		const y = startY + i * 10; // spacing between posts
-		writeTextWithNewlines(
-			COLS - 2 * Math.floor(COLS / 3) + 2,
-			y,
-			postsRendered[i].title,
-		);
-		writeTextWithNewlines(
-			COLS - 2 * Math.floor(COLS / 3) + 2,
-			y + FONT_HEIGHT + 1,
-			postsRendered[i].dek,
-		);
+	for (let i = 0; i < lines.length; i++) {
+		writeText(2, 1 + i, lines[i].slice(0, Math.max(0, COLS - 4)));
 	}
 
-	// Draw scroll bar
-	const scrollPercent = scrollPos / Math.max(1, maxScroll);
-	const scrollBarHeight = Math.max(
-		(ROWS / Math.max(ROWS, totalHeight)) * ROWS,
-		1,
-	);
-	const scrollBarStart = scrollPercent * (ROWS - scrollBarHeight);
-	for (let y = 0; y < ROWS; y++) {
-		const start = Math.floor(scrollBarStart);
-		const end = Math.floor(scrollBarStart + scrollBarHeight) - 1;
+	headerBottom = bottomBorder + 1;
+}
 
-		if (y < start || y > end) {
-			updateTile(COLS - 1, y, "|");
-		} else if (y === start) {
-			updateTile(COLS - 1, y, "n");
-		} else if (y === end) {
-			updateTile(COLS - 1, y, "u");
+function drawScrollBar(
+	start: number,
+	count: number,
+	scroll: number,
+	total: number,
+	column: number,
+) {
+	const scrollPercent = scroll / Math.max(1, total - count);
+	const scrollBarHeight = Math.max((count / Math.max(count, total)) * count, 1);
+	const scrollBarStart = scrollPercent * (count - scrollBarHeight);
+	for (let i = 0; i < count; i++) {
+		const s = Math.floor(scrollBarStart);
+		const e = Math.floor(scrollBarStart + scrollBarHeight) - 1;
+		const y = start + i;
+
+		if (i < s || i > e) {
+			updateTile(column, y, "|");
+		} else if (i === s) {
+			updateTile(column, y, "n");
+		} else if (i === e) {
+			updateTile(column, y, "u");
 		} else {
-			updateTile(COLS - 1, y, "#");
+			updateTile(column, y, "#");
 		}
 	}
 }
 
+function drawPostList(x: number, y: number, width: number, height: number) {
+	const postHeight = layoutMode === "stack" ? 3 : 10;
+	const maxScroll = Math.max(0, postsRendered.length * postHeight - height);
+	if (scrollPos > maxScroll) scrollPos = maxScroll;
+	const startY = y - Math.floor(scrollPos);
+	const clipBottom = y + height;
+
+	for (let i = 0; i < testPosts.length; i++) {
+		const py = startY + i * postHeight;
+		const titleLines =
+			layoutMode === "stack"
+				? [testPosts[i].title]
+				: postsRendered[i].title.split("\n");
+		for (let j = 0; j < titleLines.length; j++) {
+			const lineY = py + j;
+			if (lineY >= y && lineY < clipBottom) {
+				writeText(x, lineY, titleLines[j].slice(0, width));
+			}
+		}
+
+		const dekY = py + (layoutMode === "stack" ? 1 : FONT_HEIGHT + 1);
+		if (dekY >= y && dekY < clipBottom) {
+			writeText(x, dekY, testPosts[i].dek.slice(0, width));
+		}
+	}
+}
+
+function drawPosts() {
+	if (layoutMode === "split") {
+		const rightStart = COLS - 2 * Math.floor(COLS / 3);
+		const contentWidth = Math.max(1, COLS - rightStart - 2);
+
+		for (let y = 0; y < ROWS; y++) {
+			for (let x = rightStart; x < COLS; x++) {
+				updateTile(x, y, " ");
+			}
+		}
+
+		drawPostList(rightStart + 2, 0, contentWidth, ROWS);
+		drawScrollBar(0, ROWS, scrollPos, postsRendered.length * 10, COLS - 1);
+		return;
+	}
+
+	const contentX = 1;
+	const contentWidth = Math.max(1, COLS - 3);
+	const paneTop = Math.min(ROWS, headerBottom);
+	const paneRows = Math.max(1, ROWS - paneTop);
+
+	for (let y = paneTop; y < ROWS; y++) {
+		for (let x = 0; x < COLS - 1; x++) {
+			updateTile(x, y, " ");
+		}
+	}
+
+	drawPostList(contentX, paneTop + 1, contentWidth, paneRows);
+	drawScrollBar(paneTop, paneRows, scrollPos, testPosts.length * 3, COLS - 1);
+}
+
 function drawAll() {
 	tiles.fill(" ");
-	drawLeftPane();
+	headerBottom = 0;
+	if (layoutMode === "split") {
+		drawLeftPane();
+	} else {
+		drawHeader();
+	}
 	drawPosts();
 	render();
 }
