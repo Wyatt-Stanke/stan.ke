@@ -82,7 +82,7 @@ function writeTextWithNewlines(x: number, y: number, text: string): void {
 
 // Global text strings
 const PLAIN_TITLE = "Wyatt Stanke";
-const testPosts = Array.from({ length: 10 }, (_, i) => ({
+const testPosts = Array.from({ length: 25 }, (_, i) => ({
 	title: `test post ${i + 1}`,
 	dek: `Description for test post ${i + 1}`,
 }));
