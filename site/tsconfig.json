@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"target": "es2023",
 		"module": "esnext",
-		"lib": ["ES2023", "DOM"],
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"types": ["vite/client"],
 		"skipLibCheck": true,
 
@@ -13,7 +13,12 @@
 		"moduleDetection": "force",
 		"noEmit": true,
 
+		/* Solid */
+		"jsx": "preserve",
+		"jsxImportSource": "solid-js",
+
 		/* Linting */
+		"strict": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"erasableSyntaxOnly": true,
@@ -23,5 +28,5 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src"]
+	"include": ["src", "vite.config.ts"]
 }

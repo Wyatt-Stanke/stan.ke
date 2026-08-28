@@ -3,18 +3,77 @@
 	src: url("/fonts/LinLibertine_M.woff") format("woff");
 	font-style: normal;
 	font-weight: normal;
+	font-display: block;
+}
+
+/*
+ * Registered so they compute to an absolute px length at :root and inherit as
+ * px. An *unregistered* `--cw: 1ch` would be substituted as a token stream and
+ * re-resolve `1ch` against each child's own font.
+ */
+@property --cw {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
+}
+@property --rh {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
 }
 
 :root {
-	--cell-width: 0.7rem;
 	--cell-height: clamp(0.6rem, 2.2vw, 1.2rem);
 	--text-color: #000;
 	--background: #fff;
-	--contain: layout style;
-	/* --contain: layout style paint; */
+
+	/*
+	 * Semantic, not literal, for the same reason Box/Rule take a `char` prop:
+	 * the palette is part of the taxonomy, and the taxonomy is swappable.
+	 * Colour is the medium axis; the glyph in lib/taxonomy.ts is the subtype.
+	 *
+	 * Pushed as saturated as AA allows: the three media clear 4.5:1 on
+	 * --background with little room to spare (green is the tightest at 4.63),
+	 * so brightening one further needs a contrast check, not an eyeball. The
+	 * month and duration stay grey on purpose -- they are metadata, and making
+	 * them vibrant too would flatten the hierarchy the colour axis exists for.
+	 */
+	--medium-writing: #00873c;
+	--medium-video: #0062ff;
+	--medium-interactive: #aa00ff;
+	--meta-dim: #6b6b6b;
+
+	/*
+	 * How far this font's ink escapes its 1em line box. The content area is
+	 * 1.1401em tall, so half-leading is *negative* (-0.0701em) and glyphs
+	 * overhang top and bottom by design -- the same fact that keeps `paint` out
+	 * of .cell's containment. Measured worst descender is g at 0.0608em below
+	 * the line box (y 0.0559, p/q 0.0579, dagger 0.0310); this is that, rounded
+	 * up with room to spare.
+	 */
+	--ink-overhang: 0.15em;
 	--font-family:
 		"Linux Libertine Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, "Liberation Mono", "Courier New", monospace;
+
+	/*
+	 * font-size and font-family MUST be declared here: ch and em resolve
+	 * against :root's own font, so declaration and resolution have to share an
+	 * element. Every glyph this site draws has advance 1310/2048 em in Linux
+	 * Libertine Mono, so 1ch is the exact cell width, not an approximation.
+	 */
+	font-family: var(--font-family);
+	font-size: var(--cell-height);
+	line-height: 1;
+
+	--cw: 1ch;
+	--rh: 1em;
+}
+
+@media (max-width: 700px), (orientation: portrait) {
+	:root {
+		--cell-height: clamp(1rem, 4vw, 1.25rem);
+	}
 }
 
 html,
@@ -26,32 +85,376 @@ body {
 	color: var(--text-color);
 	overscroll-behavior: none;
 	text-size-adjust: 100%;
+	-webkit-text-size-adjust: 100%;
 }
 
-.grid {
-	display: block;
-	margin: 0;
-	padding: 0;
-	width: 100%;
-	height: 100%;
-	font-size: var(--cell-height);
-	line-height: var(--cell-height);
-	white-space: pre;
-	overflow: hidden;
-	contain: strict;
-	user-select: none;
-	touch-action: pan-y pinch-zoom;
-	font-family: var(--font-family);
-}
-
-#app {
+#app,
+.app-root {
 	width: 100%;
 	height: 100%;
 	min-height: 100svh;
 }
 
-@media (max-width: 700px), (orientation: portrait) {
-	:root {
-		--cell-height: clamp(1rem, 4vw, 1.25rem);
-	}
+/* The single clip in the whole app. See the containment note on .cell. */
+.app-root {
+	overflow: clip;
+}
+
+/*
+ * Footprint primitive. A component sets --cols/--rows and gets an exact box of
+ * that many character cells.
+ *
+ * `contain: size` makes the footprint authoritative -- intrinsic content can no
+ * longer influence the box. `paint`/`strict` are deliberately excluded: this
+ * font's content area is 1.14em against a 1em line box, so glyph ink overhangs
+ * every row by ~0.12em top and bottom. Any self-clipping component would shave
+ * the tops of ( ) / \ on its first row and the bottoms on its last.
+ */
+.cell {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font: inherit;
+	line-height: var(--rh);
+	white-space: pre;
+	tab-size: 1;
+	inline-size: calc(var(--cols) * var(--cw));
+	block-size: calc(var(--rows) * var(--rh));
+	contain: size layout style;
+	overflow: visible;
+}
+
+/* UA styles are the top practical source of drift: <h1>'s 0.67em margin is most
+   of a row, and <ul>'s 40px padding-inline-start is 3.26 cells. */
+/* :where() keeps this at (0,1,0) so it behaves as a baseline rather than
+   outranking component classes -- a plain `.app h1` is (0,1,1) and would beat
+   `.header__title`, silently dropping its indent. */
+.app :where(h1, h2, p, pre, ul, li, article, header, time) {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font: inherit;
+	line-height: var(--rh);
+	list-style: none;
+}
+
+.app :where(a) {
+	color: inherit;
+	text-decoration: none;
+}
+
+.sr-only {
+	position: absolute;
+	inline-size: 1px;
+	block-size: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.rule,
+.scrollbar {
+	user-select: none;
+}
+
+/*
+ * Root layout. Sized to an exact whole number of cells, so the sub-cell
+ * leftover at the right and bottom edges matches the old
+ * COLS = floor(innerWidth / cellWidth) geometry.
+ *
+ * Every track is an integer number of cells; the 1fr is therefore also an
+ * integer number, because the container and the other tracks are. Two elements
+ * that must share a grid line are always positioned by one common grid
+ * container in a single track-sizing pass -- never by two calc()s that have to
+ * sum to the container.
+ */
+.app {
+	display: grid;
+	inline-size: calc(var(--cols) * var(--cw));
+	block-size: calc(var(--rows) * var(--rh));
+}
+
+.app--split {
+	grid-template-columns: calc(var(--left) * var(--cw)) 1fr calc(1 * var(--cw));
+	grid-template-rows: 100%;
+}
+
+/* rule, title, rule, then the content pane. */
+.app--stack {
+	grid-template-columns: 1fr calc(1 * var(--cw));
+	grid-template-rows: var(--rh) var(--rh) var(--rh) 1fr;
+}
+
+.app--stack .header {
+	grid-column: 1 / -1;
+	grid-row: 1 / 4;
+	display: grid;
+	grid-template-rows: var(--rh) var(--rh) var(--rh);
+}
+
+/* writeText(2, 1 + i) in the old drawHeader. */
+.header__title {
+	padding-inline-start: calc(2 * var(--cw));
+	/* Same clip-box trick as the post row columns, and for the same reason:
+	   plain `hidden` took the tail off the y in "Wyatt Stanke". */
+	overflow: hidden;
+	padding-block: var(--ink-overhang);
+	margin-block: calc(-1 * var(--ink-overhang));
+}
+
+.app--split .app__content {
+	grid-column: 2;
+	grid-row: 1;
+	/* drawPostList was called at rightStart + 2. */
+	padding-inline-start: calc(2 * var(--cw));
+	/* The meta column is right-flush, so without this the duration sits hard
+	   against the scrollbar glyphs. Stack already has a spare column. */
+	padding-inline-end: calc(1 * var(--cw));
+}
+
+.app--stack .app__content {
+	grid-column: 1;
+	grid-row: 4;
+	/* contentX = 1, and paneTop + 1 leaves one blank row under the header. */
+	padding-inline-start: calc(1 * var(--cw));
+	padding-block-start: var(--rh);
+}
+
+.app--split .scrollbar {
+	grid-column: 3;
+	grid-row: 1;
+}
+
+.app--stack .scrollbar {
+	grid-column: 2;
+	grid-row: 4;
+}
+
+/* ---- Box: four character strips, corners owned by top/bottom ---- */
+
+.box {
+	position: relative;
+}
+
+.box__edge {
+	position: absolute;
+	margin: 0;
+	user-select: none;
+}
+
+.box__top {
+	inset-block-start: 0;
+	inset-inline-start: 0;
+}
+
+.box__bottom {
+	inset-block-end: 0;
+	inset-inline-start: 0;
+}
+
+.box__left {
+	inset-block-start: 0;
+	inset-inline-start: 0;
+}
+
+.box__right {
+	inset-block-start: 0;
+	inset-inline-end: 0;
+}
+
+/* writeTextWithNewlines(2, 1, titleText) in the old drawLeftPane. */
+.box__inner {
+	position: absolute;
+	inset-block-start: var(--rh);
+	inset-inline-start: calc(2 * var(--cw));
+}
+
+/* ---- Figlet ---- */
+
+.fig {
+	position: relative;
+}
+
+.fig__art {
+	margin: 0;
+	padding: 0;
+	font: inherit;
+	line-height: var(--rh);
+	white-space: pre;
+	display: block;
+	overflow: visible;
+	user-select: none;
+}
+
+/* ---- Post list ---- */
+
+.postlist {
+	overflow-y: auto;
+	overflow-x: clip;
+	overscroll-behavior: contain;
+	touch-action: pan-y;
+	scroll-behavior: auto;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	/* size containment would fix scrollHeight to the footprint, defeating the
+	   scroll container; layout+style still isolate it. */
+	contain: layout style;
+}
+
+.postlist::-webkit-scrollbar {
+	inline-size: 0;
+	block-size: 0;
+	display: none;
+}
+
+.postlist:focus-visible {
+	outline: none;
+}
+
+/*
+ * Marks where keyboard scrolling starts when the list takes focus, so it has to
+ * resolve to exactly one row. Both :first-child steps are load-bearing: every
+ * <a> is the only child of its own <li> (so `.postlist__link:first-child` was
+ * every row in the list), and every group carries its own <ul> (so the item
+ * step alone was the first row of all five years).
+ */
+.postlist:focus-visible .postlist__group:first-child
+	.postlist__item:first-child
+	.postlist__link {
+	text-decoration: underline;
+}
+
+.postlist__link:focus-visible {
+	outline: calc(0.1 * var(--rh)) solid currentColor;
+	outline-offset: 0;
+}
+
+/*
+ * Year groups. These margins are the only place the vertical rhythm lives in
+ * CSS; lib/rows.ts states the same numbers as YEAR_GAP and GROUP_GAP, and
+ * totalRows() feeds the scrollbar. Change one, change both.
+ */
+.postlist__group .group__items {
+	margin-block-start: calc(1 * var(--rh)); /* YEAR_GAP */
+}
+
+.postlist__group:not(:last-child) {
+	margin-block-end: calc(2 * var(--rh)); /* GROUP_GAP */
+}
+
+/* ---- One post row ---- */
+
+/*
+ * Grid tracks rather than absolute offsets: every row's title starts on the
+ * same line because one track-sizing pass put it there, and the track widths
+ * arrive as custom properties from lib/rows.ts so CSS never restates them.
+ */
+.postrow {
+	display: grid;
+	align-items: start;
+	column-gap: calc(var(--gap-cols) * var(--cw));
+}
+
+.postrow--split {
+	grid-template-columns:
+		calc(var(--month-cols) * var(--cw))
+		calc(var(--tag-cols) * var(--cw))
+		1fr
+		calc(var(--meta-cols) * var(--cw));
+}
+
+/* No label word and no duration: colour and glyph carry the taxonomy alone. */
+.postrow--stack {
+	grid-template-columns:
+		calc(var(--month-cols) * var(--cw))
+		calc(var(--tag-cols) * var(--cw))
+		1fr;
+}
+
+.postrow__month,
+.postrow__meta {
+	color: var(--meta-dim);
+}
+
+/*
+ * Truncate horizontally without shaving descenders.
+ *
+ * `overflow: hidden` alone clips both axes, which ate the tails off g/y/p and
+ * the daggers. `overflow-x: clip` with `overflow-y: visible` fixes that (clip
+ * is exempt from the coercion that turns the other axis into `auto`) but drops
+ * `text-overflow`, which only applies to hidden/scroll/auto -- long titles then
+ * hard-cut mid-glyph with no ellipsis.
+ *
+ * So: keep `hidden`, and move the clip edge instead. Overflow clips at the
+ * padding box, so padding the block axis past the ink and pulling the same
+ * amount back out as negative margin leaves the row exactly one cell tall with
+ * the text in the same place, and the clip edge outside the glyphs.
+ */
+.postrow__month,
+.postrow__tag,
+.postrow__title,
+.postrow__meta {
+	overflow: hidden;
+	white-space: pre;
+	padding-block: var(--ink-overhang);
+	margin-block: calc(-1 * var(--ink-overhang));
+}
+
+.postrow__meta {
+	text-align: end;
+}
+
+.postrow__title {
+	text-overflow: ellipsis;
+}
+
+.postrow__tag[data-medium="writing"] {
+	color: var(--medium-writing);
+}
+
+.postrow__tag[data-medium="video"] {
+	color: var(--medium-video);
+}
+
+.postrow__tag[data-medium="interactive"] {
+	color: var(--medium-interactive);
+}
+
+/*
+ * Exactly one cell of ink, whatever glyph lands here.
+ *
+ * Linux Libertine Mono is only monospaced over the subset this site draws --
+ * the font is full of 509- and 1236-unit symbols, and anything it lacks falls
+ * back to a font with its own metrics. Boxing the glyph means a bad glyph
+ * misdraws itself instead of shearing the label and title columns. `visible`
+ * for the same reason .cell avoids contain: paint -- this font's ink overhangs
+ * its box, and clipping shaves it.
+ */
+.glyph {
+	display: inline-block;
+	inline-size: var(--cw);
+	text-align: center;
+	overflow: visible;
+	font-variant-emoji: text;
+}
+
+.postlist__link:hover .postrow__title {
+	text-decoration: underline;
+}
+
+/* ---- Dev-only grid overlay: /?grid=1 ---- */
+
+.app[data-grid-debug]::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 9;
+	background:
+		repeating-linear-gradient(90deg, #f003 0 1px, #0000 1px var(--cw)),
+		repeating-linear-gradient(180deg, #00f3 0 1px, #0000 1px var(--rh));
 }
