@@ -338,6 +338,10 @@ body {
  * CSS; lib/rows.ts states the same numbers as YEAR_GAP and GROUP_GAP, and
  * totalRows() feeds the scrollbar. Change one, change both.
  */
+.postlist__groups {
+	padding-block-end: calc(1 * var(--rh)); /* TAIL_ROWS */
+}
+
 .postlist__group .group__items {
 	margin-block-start: calc(1 * var(--rh)); /* YEAR_GAP */
 }

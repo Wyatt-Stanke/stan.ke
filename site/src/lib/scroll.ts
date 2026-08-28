@@ -46,7 +46,13 @@ export function attachScroll(
 	let target = el.scrollTop;
 	let queued = false;
 
-	const maxScroll = () => Math.max(0, el.scrollHeight - el.clientHeight);
+	const maxScroll = () => {
+		const row = rh() || 1;
+		return Math.max(
+			0,
+			Math.round((el.scrollHeight - el.clientHeight) / row) * row,
+		);
+	};
 	const clamp = (v: number) => Math.min(Math.max(v, 0), maxScroll());
 
 	// The scrollTop value our own flush last wrote, as the browser stored it.

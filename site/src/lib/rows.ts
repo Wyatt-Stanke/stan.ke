@@ -60,6 +60,8 @@ export const GROUP_GAP = 2;
 
 export const POST_ROWS = 1;
 
+export const TAIL_ROWS = 1;
+
 export interface Group {
 	year: number;
 	/** Pre-rendered at module load, like every other figlet on the site. */
@@ -88,5 +90,5 @@ export const groupRows = (group: Group): number =>
 export function totalRows(groups: Group[]): number {
 	let rows = 0;
 	for (const group of groups) rows += groupRows(group);
-	return rows + GROUP_GAP * Math.max(0, groups.length - 1);
+	return rows + GROUP_GAP * Math.max(0, groups.length - 1) + TAIL_ROWS;
 }
