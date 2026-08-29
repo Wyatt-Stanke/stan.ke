@@ -380,7 +380,6 @@ body {
 		1fr;
 }
 
-.postrow__month,
 .postrow__meta {
 	color: var(--meta-dim);
 }
@@ -399,7 +398,6 @@ body {
  * amount back out as negative margin leaves the row exactly one cell tall with
  * the text in the same place, and the clip edge outside the glyphs.
  */
-.postrow__month,
 .postrow__tag,
 .postrow__title,
 .postrow__meta {

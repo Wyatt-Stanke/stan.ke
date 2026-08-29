@@ -50,7 +50,7 @@ export function PostRow(props: PostRowProps): JSX.Element {
 				"--gap-cols": String(split() ? SPLIT_GAP : STACK_GAP),
 			}}
 		>
-			<time class="postrow__month" datetime={props.post.date}>
+			<time datetime={props.post.date}>
 				{monthLabel(props.post.date)}
 			</time>
 
