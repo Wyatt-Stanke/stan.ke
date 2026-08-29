@@ -10,12 +10,11 @@
  * a project too) and "software" is a fact about implementation, not about what
  * the reader is being handed.
  *
- * Every glyph here is verified to exist in Linux Libertine Mono *and* to carry
- * the 1310/2048 advance the cell model depends on. That is not automatic: the
- * font is only monospaced over the subset this site draws. U+2032 PRIME is 509,
- * U+2042 ASTERISM is 1236, and the Dingbats block (U+2731 and friends) is absent
- * outright -- any of those would shear the tag column by a fraction of a cell,
- * differently on every row. Re-run the advance check before adding a glyph.
+ * Every glyph here is verified to exist in Libertinus Mono. That is the whole
+ * check now: the font is genuinely fixed-pitch -- all 614 glyphs carry the same
+ * 640/1000 advance -- so anything it covers is automatically one cell wide.
+ * (The predecessor, Linux Libertine Mono, was only monospaced over the subset
+ * this site happened to draw, and the check was per-glyph advance arithmetic.)
  *
  * The charset is swappable on purpose, like Box/Rule's `char` prop.
  */

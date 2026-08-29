@@ -1,6 +1,6 @@
 @font-face {
-	font-family: "Linux Libertine Mono";
-	src: url("/fonts/LinLibertine_M.woff") format("woff");
+	font-family: "Libertinus Mono";
+	src: url("/fonts/LibertinusMono-Regular.woff2") format("woff2");
 	font-style: normal;
 	font-weight: normal;
 	font-display: block;
@@ -53,14 +53,15 @@
 	 */
 	--ink-overhang: 0.15em;
 	--font-family:
-		"Linux Libertine Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+		"Libertinus Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, "Liberation Mono", "Courier New", monospace;
 
 	/*
 	 * font-size and font-family MUST be declared here: ch and em resolve
 	 * against :root's own font, so declaration and resolution have to share an
-	 * element. Every glyph this site draws has advance 1310/2048 em in Linux
-	 * Libertine Mono, so 1ch is the exact cell width, not an approximation.
+	 * element. Libertinus Mono is fully monospaced -- every glyph in the font
+	 * has advance 640/1000 em -- so 1ch is the exact cell width, not an
+	 * approximation, for any glyph the font covers.
 	 */
 	font-family: var(--font-family);
 	font-size: var(--cell-height);
@@ -431,10 +432,12 @@ body {
 /*
  * Exactly one cell of ink, whatever glyph lands here.
  *
- * Linux Libertine Mono is only monospaced over the subset this site draws --
- * the font is full of 509- and 1236-unit symbols, and anything it lacks falls
- * back to a font with its own metrics. Boxing the glyph means a bad glyph
- * misdraws itself instead of shearing the label and title columns. `visible`
+ * Libertinus Mono is fully monospaced, so a glyph it *covers* is one cell wide
+ * for free. The risk is the glyphs it does not: 612 codepoints, no Dingbats
+ * block, and anything missing falls back to a font with its own metrics.
+ * Boxing means such a glyph misdraws itself instead of shearing the label and
+ * title columns -- and it is what lets a second @font-face supply a symbol
+ * this font lacks without the advance having to match. `visible`
  * for the same reason .cell avoids contain: paint -- this font's ink overhangs
  * its box, and clipping shaves it.
  */

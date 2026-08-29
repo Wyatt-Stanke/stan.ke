@@ -76,7 +76,7 @@ export function createGrid(target: () => HTMLElement | undefined) {
 		};
 		// The old engine awaited fonts before its first build(); Solid mounts
 		// synchronously, so re-measure once the real metrics are available.
-		document.fonts.load('1rem "Linux Libertine Mono"').catch(() => {});
+		document.fonts.load('1rem "Libertinus Mono"').catch(() => {});
 		document.fonts.ready.then(onFonts).catch(() => setFontsReady(true));
 		document.fonts.addEventListener("loadingdone", refresh);
 
