@@ -19,10 +19,7 @@ export function render(text: string): string {
 	return figlet.textSync(text, { font: FONT });
 }
 
-/**
- * Intrinsic size straight from the string -- exact, synchronous, and free.
- * This is what titleWidth()/postTitleWidth() (main.ts:108-121) did.
- */
+/** Intrinsic size straight from the string: exact, synchronous, and free. */
 export function figSize(art: string): FigSize {
 	const lines = art.split("\n");
 	let cols = 0;

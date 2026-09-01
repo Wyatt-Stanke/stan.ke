@@ -6,7 +6,7 @@ export interface RuleProps {
 	char?: string;
 }
 
-/** A full-width horizontal rule of characters. Replaces main.ts:220-225. */
+/** A full-width horizontal rule of characters. */
 export function Rule(props: RuleProps): JSX.Element {
 	return (
 		<pre

@@ -16,16 +16,14 @@ export interface Post {
 	minutes?: number;
 }
 
-// Placeholder content, carried over from main.ts:85-88. Every title says
-// "sample" and every href is a dead fragment, so nothing here can be mistaken
-// for real content or quietly ship as it is.
+// Placeholder content. Every title says "sample" and every href is a dead
+// fragment, so nothing here can quietly ship as real content.
 //
-// The set is still shaped to exercise the layout: all eight kinds, five years
-// with different post counts, durations either side of the hour boundary (63 ->
+// The set is shaped to exercise the layout: all eight kinds, five years with
+// different post counts, durations either side of the hour boundary (63 ->
 // 1h03, 310 -> 5h10), interactive kinds with no duration at all, and a few
 // titles long enough to truncate in each mode. Five years is also more rows
-// than any viewport holds, so the scrollbar and the row snapping are visible
-// without having to fake content first.
+// than any viewport holds, so the scrollbar and the row snapping are visible.
 export const posts: Post[] = [
 	{
 		title: "Sample post 1",

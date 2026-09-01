@@ -13,11 +13,7 @@ export interface HeaderProps {
 	rules?: boolean;
 }
 
-/**
- * Stack-mode chrome: rule, plain-text title, rule. Replaces drawHeader()
- * (main.ts:215-232). The old `headerBottom` global becomes a grid-row fact,
- * and the row count is now a layout region rather than a constant here.
- */
+/** Stack-mode chrome: rule, plain-text title, rule. */
 export function Header(props: HeaderProps): JSX.Element {
 	return (
 		<header class="header">

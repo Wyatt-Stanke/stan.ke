@@ -7,9 +7,8 @@ export interface YearHeaderProps {
 }
 
 /**
- * The one place figlet still earns its keep in the list. A year is a fixed
- * 23x4 footprint whatever the content is, unlike a post title, so it no longer
- * drives the layout breakpoint -- see createLayout().
+ * A year is a fixed 23x4 footprint whatever the content is, unlike a post
+ * title, so it does not feed the layout breakpoint -- see createLayout().
  */
 export function YearHeader(props: YearHeaderProps): JSX.Element {
 	return (

@@ -1,13 +1,12 @@
 import { onCleanup } from "solid-js";
 
-/** Rows moved per arrow/vim keypress, as in main.ts:190-192. */
+/** Rows moved per arrow/vim keypress. */
 const KEY_ROWS = 3;
 
 /**
- * The old engine's wheel handler was `scrollPos += deltaY / 10` where scrollPos
- * is measured in *rows* (main.ts:146, 268). In pixels that is `rh / 10` per unit
- * of delta -- i.e. roughly 1.9x faster than native scrolling, not slower. The
- * name "damping" describes the divisor, not the resulting feel.
+ * Wheel delta is scaled to `rh / 10` per unit, which is roughly 1.9x faster
+ * than native scrolling, not slower: the name describes the divisor, not the
+ * resulting feel.
  */
 const DAMP = 1 / 10;
 
@@ -30,19 +29,17 @@ export interface ScrollControls {
 /**
  * Damped wheel + keyboard scrolling over a real overflow container.
  *
- * Touch is deliberately untouched: touch scrolling never dispatches `wheel`,
- * so attaching a wheel handler scopes the damping to devices that actually
- * have wheels -- no pointer-type or media-query sniffing needed, and a
- * Bluetooth mouse on a tablet still gets damped, which is correct.
+ * Touch is deliberately untouched: touch scrolling never dispatches `wheel`, so
+ * a wheel handler scopes the damping to devices that actually have wheels -- no
+ * pointer-type or media-query sniffing needed, and a Bluetooth mouse on a
+ * tablet still gets damped, which is correct.
  */
 export function attachScroll(
 	el: HTMLElement,
 	rh: () => number,
 	onScroll: (top: number) => void,
 ): ScrollControls {
-	// Private float accumulator; the direct analogue of the old `scrollPos`.
-	// Sub-row motion accumulates here but never renders, reproducing the
-	// Math.floor(scrollPos) of main.ts:268.
+	// Private float accumulator: sub-row motion collects here but never renders.
 	let target = el.scrollTop;
 	let queued = false;
 
@@ -73,9 +70,9 @@ export function attachScroll(
 		requestAnimationFrame(flush);
 	};
 
-	// The old code ignored deltaMode entirely, so Firefox on Windows/Linux
-	// (DOM_DELTA_LINE, deltaY = 3) moved 0.3 rows per notch and Math.floor ate
-	// it -- the page looked frozen. Normalising to pixels fixes that.
+	// Firefox on Windows/Linux reports DOM_DELTA_LINE with deltaY = 3, which is
+	// 0.3 rows per notch -- Math.floor eats it and the page looks frozen unless
+	// every mode is normalised to pixels first.
 	const wheelPixels = (ev: WheelEvent): number => {
 		switch (ev.deltaMode) {
 			case 1:
@@ -111,8 +108,8 @@ export function attachScroll(
 	//
 	// Never resync from a scroll our own flush caused. scrollTop is stored at
 	// device-pixel precision, so a row height of 19.2px comes back as 58 rather
-	// than 57.6; adopting that into `target` bled a third of a row on every
-	// keypress (3, 5.99, 8.02, 10.99 ... instead of 3, 6, 9, 12).
+	// than 57.6, and adopting that into `target` bleeds a third of a row on
+	// every keypress (3, 5.99, 8.02, 10.99 ... instead of 3, 6, 9, 12).
 	let syncing = false;
 	const handleScroll = () => {
 		if (Math.abs(el.scrollTop - selfWrite) < 1) {

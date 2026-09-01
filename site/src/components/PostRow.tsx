@@ -15,24 +15,19 @@ export interface PostRowProps {
 }
 
 /**
- * One post, one row. The old 10-row block (figlet title + dek) is gone: the
- * list is an index now, so a screenful is thirty entries rather than three.
+ * One post, one row: month, tag, title, duration.
  *
- * Information order is month, tag, title, duration. The tag carries the
- * taxonomy twice on purpose -- colour for medium, glyph for subtype, and the
- * word spelling out both. That redundancy is the accessibility floor and the
- * narrow-mode degradation path: the *word* is the first thing fitRow() drops,
- * so the two pre-attentive cues are what survive.
+ * The tag carries the taxonomy twice on purpose -- colour for medium, glyph for
+ * subtype, and the word spelling out both. That redundancy is the accessibility
+ * floor and the narrow-mode degradation path: the *word* is the first thing
+ * fitRow() drops, so the two pre-attentive cues survive.
  *
- * The row no longer knows about LayoutMode. It takes a RowFit and renders the
- * columns that fit, which is what turns the old single cliff into a ramp and
- * is why a new layout mode costs nothing here. A dropped column keeps its text
- * as .sr-only -- out of flow, so it claims no track, and the row stays whole
- * for a screen reader at every width.
+ * The row takes a RowFit, never a LayoutMode, and renders the columns that fit.
+ * A dropped column keeps its text as .sr-only -- out of flow, so it claims no
+ * track and the row stays whole for a screen reader at every width.
  *
  * The columns are grid tracks, not summed calc() offsets, so every row's title
- * shares one left edge from a single track-sizing pass -- the same reason .app
- * is one grid rather than three positioned children.
+ * shares one left edge from a single track-sizing pass.
  */
 export function PostRow(props: PostRowProps): JSX.Element {
 	const spec = () => KINDS[props.post.kind];

@@ -25,10 +25,9 @@ export interface PostListProps {
  * A real overflow container: touch gets native momentum, and PageUp/PageDown/
  * Home/End work for free because the element is focusable.
  *
- * The vertical rhythm is pushed to CSS from lib/rows.ts here. style.css used to
- * restate YEAR_GAP/GROUP_GAP/TAIL_ROWS as literal margins, which meant the
- * scrollbar -- drawn from totalRows() -- drifted away from the content if only
- * one side was changed.
+ * The vertical rhythm is pushed to CSS from lib/rows.ts here rather than
+ * restated as literal margins, so it cannot drift from the totalRows() the
+ * scrollbar is drawn from.
  */
 export function PostList(props: PostListProps): JSX.Element {
 	let el!: HTMLElement;

@@ -16,9 +16,9 @@ export interface LeftPaneProps {
 
 /**
  * The name at its own intrinsic footprint, so the box's inner origin still
- * lands on a cell boundary. figSize is just "max line length by line count" --
- * it measures a plain string as exactly as it measures art, which is what lets
- * lib/layout.ts treat the two panes as one geometry with two title sizes.
+ * lands on a cell boundary. figSize is just "max line length by line count", so
+ * it measures a plain string as exactly as it measures art -- which is what
+ * lets lib/layout.ts treat the two panes as one geometry with two title sizes.
  *
  * No sr-only twin here, unlike FigText: this *is* the text.
  */
@@ -33,12 +33,9 @@ function PlainTitle(props: { text: string }): JSX.Element {
 }
 
 /**
- * Left pane for the two pane modes: an X-bordered box with the name inside.
- *
- * split draws the name as figlet art; slim draws it as plain text, for the
- * widths that have room for a side pane but not for 35x8 of art. Nothing else
- * about the pane changes between them, which is why this is one component with
- * a nullable `art` rather than two that would drift.
+ * Left pane for both pane modes: an X-bordered box with the name inside. split
+ * draws the name as figlet art; slim draws it as plain text, for the widths
+ * with room for a side pane but not for 35x8 of art.
  */
 export function LeftPane(props: LeftPaneProps): JSX.Element {
 	return (

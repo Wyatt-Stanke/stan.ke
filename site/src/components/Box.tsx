@@ -10,13 +10,9 @@ export interface BoxProps {
 }
 
 /**
- * A rectangle outlined in characters, replacing the inline perimeter loop of
- * drawLeftPane() (main.ts:203-209).
- *
- * Drawn as four absolutely-positioned strips rather than CSS borders, so the
- * charset stays swappable. Top and bottom span the full width, which gives the
- * corners to the horizontal strips -- exactly as the original loop did, since
- * the corner cell satisfied both conditions and was written as the border char.
+ * A rectangle outlined in characters. Four absolutely-positioned strips rather
+ * than CSS borders, so the charset stays swappable; top and bottom span the
+ * full width, which gives them the corners.
  */
 export function Box(props: BoxProps): JSX.Element {
 	const char = () => props.char ?? "X";

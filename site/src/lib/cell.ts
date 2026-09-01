@@ -11,9 +11,8 @@ function readLen(el: Element, name: string): number {
 }
 
 // Fallback for engines without @property (pre-Safari 16.4 / pre-Firefox 128).
-// Measures a 100-char run and divides, rather than the single "X" the old
-// engine used -- a 100x run cuts the relative error of the browser's own
-// LayoutUnit quantisation (1/64px Blink, 1/60px Gecko) by 100x.
+// Measures a 100-char run and divides: that cuts the relative error of the
+// browser's own LayoutUnit quantisation (1/64px Blink, 1/60px Gecko) by 100x.
 function probeCell(): CellSize {
 	const root = document.documentElement;
 	const style = getComputedStyle(root);
@@ -42,11 +41,9 @@ export function measureCell(): CellSize {
 }
 
 /**
- * Owns the character-grid dimensions. Replaces the COLS/ROWS/cellSizePx/build
- * globals of the old engine (main.ts:12-63).
- *
- * Observes the element rather than `window`, so zoom and font-size changes are
- * picked up too -- the old `resize` listener missed both.
+ * Owns the character-grid dimensions. Observes the element rather than
+ * `window`, so zoom and font-size changes are picked up too; a `resize`
+ * listener misses both.
  */
 export function createGrid(target: () => HTMLElement | undefined) {
 	const [cell, setCell] = createSignal<CellSize>({ cw: 0, rh: 0 });
@@ -74,8 +71,9 @@ export function createGrid(target: () => HTMLElement | undefined) {
 			setFontsReady(true);
 			refresh();
 		};
-		// The old engine awaited fonts before its first build(); Solid mounts
-		// synchronously, so re-measure once the real metrics are available.
+		// Solid mounts synchronously, before the webfont has loaded, so the
+		// first measurement is of the fallback -- re-measure once the real
+		// metrics are available.
 		document.fonts.load('1rem "Libertinus Mono"').catch(() => {});
 		document.fonts.ready.then(onFonts).catch(() => setFontsReady(true));
 		document.fonts.addEventListener("loadingdone", refresh);

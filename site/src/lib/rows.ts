@@ -7,19 +7,15 @@ import { DURATION_COLS, LABEL_COLS, yearOf } from "./taxonomy";
  * Horizontal: the column metrics of one post row.
  * ---------------------------------------------------------------------------
  *
- * Every row is a fixed set of columns so the titles share a left edge. A
- * ragged title column is the first thing that reads as broken on a character
- * grid, and it is what an inline, natural-width label produces.
+ * Every row is a fixed set of columns so the titles share a left edge. A ragged
+ * title column is the first thing that reads as broken on a character grid, and
+ * it is what an inline, natural-width label produces.
  *
- * *Which* columns a row shows is a width question, not a mode question. The
- * row used to fork on LayoutMode, so the label word and the duration vanished
- * together at one threshold and nothing changed at any other width. fitRow()
- * replaces that cliff with a ramp: features are dropped one at a time, in
- * DROP_ORDER, until the title track clears MIN_TITLE_COLS.
- *
- * The glyph and the title are deliberately not in that table. Colour and glyph
- * are the two pre-attentive taxonomy cues (see lib/taxonomy.ts) and the title
- * is the content, so they are the floor rather than candidates.
+ * *Which* columns is a width question, not a mode question: fitRow() drops
+ * features one at a time, in DROP_ORDER, until the title track clears
+ * MIN_TITLE_COLS. The glyph and the title are deliberately not in that table --
+ * colour and glyph are the two pre-attentive taxonomy cues (see
+ * lib/taxonomy.ts) and the title is the content, so they are the floor.
  *
  * These numbers are the single source of truth: PostRow hands them to CSS as
  * custom properties and one generated track list, so style.css never restates
@@ -90,9 +86,8 @@ function fixedColsFor(on: ReadonlySet<RowFeature>, gap: number): number {
 }
 
 /**
- * The width at which a row can show everything. This is the list's term in the
- * split breakpoint, and it stays content-independent: no published title feeds
- * into it.
+ * The width at which a row can show everything -- the list's term in the split
+ * breakpoint. Content-independent: no published title feeds into it.
  */
 export const MIN_ROW_COLS =
 	fixedColsFor(new Set(ALL_FEATURES), WIDE_GAP) + MIN_TITLE_COLS;
@@ -121,8 +116,8 @@ export function fitRow(cols: number): RowFit {
 
 /**
  * The row's grid-template-columns, generated from the fit rather than restated
- * once per mode in CSS. A dropped feature has to lose its *track*, not just
- * its text -- otherwise the title's left edge moves and the column stays.
+ * in CSS. A dropped feature has to lose its *track*, not just its text --
+ * otherwise the title's left edge moves and the empty column stays.
  */
 export function rowTracks(fit: RowFit): string {
 	const tracks: string[] = [];
@@ -144,9 +139,8 @@ export function rowTracks(fit: RowFit): string {
  * totalRows().
  *
  * The gaps below are stated here only. PostList pushes them to CSS as custom
- * properties -- style.css used to restate them as literal margins, and the
- * scrollbar is drawn from totalRows(), so a margin changed on one side alone
- * showed up as the bar drifting away from the content.
+ * properties, because the scrollbar is drawn from totalRows() and a margin
+ * changed on one side alone shows up as the bar drifting off the content.
  */
 
 /** One row of air between a year's art and its first post. */

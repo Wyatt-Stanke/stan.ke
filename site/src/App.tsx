@@ -13,15 +13,13 @@ import { buildGroups, fitRow, totalRows } from "./lib/rows";
 const TITLE_LINES = "Wyatt\nStanke";
 const TITLE = TITLE_LINES.replace("\n", " ");
 
-// Rendered once at module load. figlet.textSync removes the async boot dance
-// (26 awaited renders) that used to block first paint in main.ts:96-106. There
-// are only a handful of renders left now: the site title and one year per
-// group, instead of one per post.
+// Rendered once at module load: figlet.textSync is synchronous, so nothing
+// awaits before first paint.
 const titleArt = render(TITLE_LINES);
 const groups = buildGroups(posts);
 
 // Both footprints of the same string: 35x8 as art, 6x2 as text. pickLayout
-// compares each against the width it has and takes the richest that fits.
+// takes the richest that fits the width it has.
 const TITLE_SIZE = { art: figSize(titleArt), text: figSize(TITLE_LINES) };
 const TOTAL_ROWS = totalRows(groups);
 
@@ -30,17 +28,14 @@ export function App(): JSX.Element {
 
 	const grid = createGrid(() => root);
 
-	// One pass from (cols, rows) to every number anyone downstream needs. This
-	// used to be a mode enum plus four hand-written subtractions here, each of
-	// which had to agree with a padding declared in style.css.
+	// One pass from (cols, rows) to every number anyone downstream needs.
 	const layout = createLayout(grid.cols, grid.rows, () => TITLE_SIZE);
 
-	// Every row is the same width, so the column fit is computed once here
-	// rather than per row.
+	// Every row is the same width, so the fit is computed once, not per row.
 	const fit = createMemo(() => fitRow(layout().content.innerCols));
 
 	// Read-only mirror of the DOM's scroll position, in pixels. Never written
-	// back to the element -- that would close a DOM -> signal -> DOM loop that
+	// back to the element: that closes a DOM -> signal -> DOM loop which
 	// oscillates during touch momentum.
 	const [scrollTop, setScrollTop] = createSignal(0);
 	const scrollRows = () => scrollTop() / (grid.cell().rh || 1);

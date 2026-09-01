@@ -10,11 +10,10 @@
  * a project too) and "software" is a fact about implementation, not about what
  * the reader is being handed.
  *
- * Every glyph here is verified to exist in Libertinus Mono. That is the whole
- * check now: the font is genuinely fixed-pitch -- all 614 glyphs carry the same
- * 640/1000 advance -- so anything it covers is automatically one cell wide.
- * (The predecessor, Linux Libertine Mono, was only monospaced over the subset
- * this site happened to draw, and the check was per-glyph advance arithmetic.)
+ * Every glyph here must be verified to exist in Libertinus Mono, and coverage
+ * is the whole check: the font is fixed-pitch across all 614 glyphs, so
+ * anything it covers is one cell wide automatically. Anything it does not falls
+ * back to a font with its own metrics -- see .glyph in style.css.
  *
  * The charset is swappable on purpose, like Box/Rule's `char` prop.
  */
@@ -35,29 +34,27 @@ export interface KindSpec {
 	medium: Medium;
 	/** Word shown in the label column. Also the screen-reader name. */
 	label: string;
-	/** One cell of ink. See the advance note above. */
 	glyph: string;
 }
 
 export const KINDS: Record<Kind, KindSpec> = {
-	// Daggers: the typographic single/double pair, so "longer" is the same
-	// mark doubled.
-	post: { medium: "writing", label: "post", glyph: "†" }, // †
-	essay: { medium: "writing", label: "essay", glyph: "‡" }, // ‡
+	// Daggers: the typographic single/double pair, so "longer" is the same mark
+	// doubled.
+	post: { medium: "writing", label: "post", glyph: "†" },
+	essay: { medium: "writing", label: "essay", glyph: "‡" },
 
-	// Notes: one note, two notes, two notes double-beamed. Ranked by ink, and
-	// "series" landing on the plural glyph is the point.
-	short: { medium: "video", label: "short", glyph: "♪" }, // ♪
-	video: { medium: "video", label: "video", glyph: "♫" }, // ♫
-	series: { medium: "video", label: "series", glyph: "♬" }, // ♬
+	// One note, two notes, two notes double-beamed: ranked by ink, and "series"
+	// landing on the plural glyph is the point.
+	short: { medium: "video", label: "short", glyph: "♪" },
+	video: { medium: "video", label: "video", glyph: "♫" },
+	series: { medium: "video", label: "series", glyph: "♬" },
 
-	// Unordered, so these are three distinct marks rather than a ranked family.
-	// U+2192 ARROW was the first pick and is wrong: its ink is one thin
-	// horizontal stroke, so at stack-mode sizes it reads as a hyphen, and what
-	// ink it has overhangs its advance into the label.
-	site: { medium: "interactive", label: "site", glyph: "§" }, // §
-	game: { medium: "interactive", label: "game", glyph: "★" }, // ★
-	app: { medium: "interactive", label: "app", glyph: "¤" }, // ¤
+	// Unordered, so three distinct marks rather than a ranked family. A mark
+	// needs enough ink to survive the smallest cell size -- U+2192 ARROW is a
+	// single thin horizontal stroke and reads as a hyphen there.
+	site: { medium: "interactive", label: "site", glyph: "§" },
+	game: { medium: "interactive", label: "game", glyph: "★" },
+	app: { medium: "interactive", label: "app", glyph: "¤" },
 };
 
 /** Width of the label column, derived so it can never drift from the table. */

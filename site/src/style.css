@@ -47,7 +47,7 @@
 	 * How far this font's ink escapes its 1em line box. The content area is
 	 * 1.1401em tall, so half-leading is *negative* (-0.0701em) and glyphs
 	 * overhang top and bottom by design -- the same fact that keeps `paint` out
-	 * of .cell's containment. Measured worst descender is g at 0.0608em below
+	 * of .cell's containment. Worst measured descender is g at 0.0608em below
 	 * the line box (y 0.0559, p/q 0.0579, dagger 0.0310); this is that, rounded
 	 * up with room to spare.
 	 */
@@ -105,11 +105,11 @@ body {
  * Footprint primitive. A component sets --cols/--rows and gets an exact box of
  * that many character cells.
  *
- * `contain: size` makes the footprint authoritative -- intrinsic content can no
- * longer influence the box. `paint`/`strict` are deliberately excluded: this
+ * `contain: size` makes the footprint authoritative, so intrinsic content
+ * cannot influence the box. `paint`/`strict` are deliberately excluded: this
  * font's content area is 1.14em against a 1em line box, so glyph ink overhangs
- * every row by ~0.12em top and bottom. Any self-clipping component would shave
- * the tops of ( ) / \ on its first row and the bottoms on its last.
+ * every row by ~0.12em top and bottom, and a self-clipping component would
+ * shave the tops of ( ) / \ on its first row and the bottoms on its last.
  */
 .cell {
 	box-sizing: border-box;
@@ -127,8 +127,9 @@ body {
 }
 
 /* UA styles are the top practical source of drift: <h1>'s 0.67em margin is most
-   of a row, and <ul>'s 40px padding-inline-start is 3.26 cells. */
-/* :where() keeps this at (0,1,0) so it behaves as a baseline rather than
+   of a row, and <ul>'s 40px padding-inline-start is 3.26 cells.
+
+   :where() keeps this at (0,1,0) so it behaves as a baseline rather than
    outranking component classes -- a plain `.app h1` is (0,1,1) and would beat
    `.header__title`, silently dropping its indent. */
 .app :where(h1, h2, p, pre, ul, li, article, header, time) {
@@ -163,16 +164,12 @@ body {
 }
 
 /*
- * Root layout. Sized to an exact whole number of cells, so the sub-cell
- * leftover at the right and bottom edges matches the old
- * COLS = floor(innerWidth / cellWidth) geometry.
- *
- * One uniform grid of cols x rows cell tracks, rather than a per-mode
- * template. Every grid line is now a cell boundary by construction -- there is
- * no 1fr whose integer-ness has to be argued from the other tracks -- and a
- * layout mode is just a set of line numbers arriving as custom properties from
- * lib/layout.ts. Two elements that must share a grid line still get it from
- * one track-sizing pass, never from two calc()s that have to sum.
+ * Root layout: one uniform grid of cols x rows cell tracks, sized to an exact
+ * whole number of cells, with the sub-cell leftover at the right and bottom
+ * edges. Every grid line is a cell boundary by construction, and a layout mode
+ * is just a set of line numbers arriving as custom properties from
+ * lib/layout.ts. Two elements that must share a grid line get it from one
+ * track-sizing pass, never from two calc()s that have to sum.
  */
 .app {
 	display: grid;
@@ -181,17 +178,13 @@ body {
 	/* 1fr, not var(--cw): the box is already an exact whole number of cells, so
 	   an fr track *is* one cell -- but fr distribution makes the tracks sum to
 	   the container exactly, where 42 fixed 19.2px tracks each truncate to
-	   1/64px and drift 0.53px off the last grid line. Measured worst line error
+	   1/64px and drift 0.53px off the last grid line. Worst measured line error
 	   with fr: 0.01px. */
 	grid-template-columns: repeat(var(--cols), 1fr);
 	grid-template-rows: repeat(var(--rows), 1fr);
 }
 
-/*
- * The three regions. Placement is entirely data now: .app--split/.app--stack
- * are gone, and so is the second copy of the geometry that App.tsx had to
- * subtract by hand to agree with them.
- */
+/* The three regions. Placement is entirely data: one rule each, no mode class. */
 .app__chrome {
 	grid-column: var(--pane-col) / span var(--pane-cols);
 	grid-row: var(--pane-row) / span var(--pane-rows);
@@ -210,17 +203,16 @@ body {
 	grid-row: var(--bar-row) / span var(--bar-rows);
 }
 
-/* auto-rows, not three fixed ones: the header is 3 rows or 1, by height. */
+/* auto-rows, not three fixed: the header is 3 rows or 1, by height. */
 .header {
 	display: grid;
 	grid-auto-rows: var(--rh);
 }
 
-/* writeText(2, 1 + i) in the old drawHeader. */
 .header__title {
 	padding-inline-start: calc(2 * var(--cw));
 	/* Same clip-box trick as the post row columns, and for the same reason:
-	   plain `hidden` took the tail off the y in "Wyatt Stanke". */
+	   plain `hidden` takes the tail off the y in "Wyatt Stanke". */
 	overflow: hidden;
 	padding-block: var(--ink-overhang);
 	margin-block: calc(-1 * var(--ink-overhang));
@@ -258,7 +250,6 @@ body {
 	inset-inline-end: 0;
 }
 
-/* writeTextWithNewlines(2, 1, titleText) in the old drawLeftPane. */
 .box__inner {
 	position: absolute;
 	inset-block-start: var(--rh);
@@ -327,9 +318,9 @@ body {
 
 /*
  * Year groups. The rhythm is lib/rows.ts's -- PostList pushes YEAR_GAP,
- * GROUP_GAP and TAIL_ROWS down as custom properties, and totalRows() feeds the
- * scrollbar off the same constants. CSS used to restate them as literals, so
- * the bar drifted from the content whenever only one side was edited.
+ * GROUP_GAP and TAIL_ROWS down as custom properties and totalRows() feeds the
+ * scrollbar off the same constants, so restating any of them here as a literal
+ * margin would drift the bar off the content.
  */
 .postlist__groups {
 	padding-block-end: calc(var(--tail-rows) * var(--rh));
@@ -347,12 +338,9 @@ body {
 
 /*
  * Grid tracks rather than absolute offsets: every row's title starts on the
- * same line because one track-sizing pass put it there.
- *
- * The track list itself is generated by rowTracks() and arrives inline, so a
- * column that fitRow() drops loses its track and not just its text. The two
- * per-mode templates that used to live here could only express two widths;
- * this expresses every one of them.
+ * same line because one track-sizing pass put it there. The track list is
+ * generated by rowTracks() and arrives inline, so a column that fitRow() drops
+ * loses its track and not just its text.
  */
 .postrow {
 	display: grid;
@@ -367,7 +355,7 @@ body {
 /*
  * Truncate horizontally without shaving descenders.
  *
- * `overflow: hidden` alone clips both axes, which ate the tails off g/y/p and
+ * `overflow: hidden` alone clips both axes, which eats the tails off g/y/p and
  * the daggers. `overflow-x: clip` with `overflow-y: visible` fixes that (clip
  * is exempt from the coercion that turns the other axis into `auto`) but drops
  * `text-overflow`, which only applies to hidden/scroll/auto -- long titles then
@@ -412,12 +400,11 @@ body {
  *
  * Libertinus Mono is fully monospaced, so a glyph it *covers* is one cell wide
  * for free. The risk is the glyphs it does not: 612 codepoints, no Dingbats
- * block, and anything missing falls back to a font with its own metrics.
- * Boxing means such a glyph misdraws itself instead of shearing the label and
- * title columns -- and it is what lets a second @font-face supply a symbol
- * this font lacks without the advance having to match. `visible`
- * for the same reason .cell avoids contain: paint -- this font's ink overhangs
- * its box, and clipping shaves it.
+ * block, and anything missing falls back to a font with its own metrics. Boxing
+ * means such a glyph misdraws itself instead of shearing the label and title
+ * columns, and it lets a second @font-face supply a symbol this font lacks
+ * without the advance having to match. `visible` for the same reason .cell
+ * avoids contain: paint -- this font's ink overhangs its box.
  */
 .glyph {
 	display: inline-block;

@@ -14,8 +14,7 @@ export interface FigTextProps {
 
 /**
  * Figlet art sized to its exact cell footprint, with the real text carried
- * alongside for assistive tech. Replaces writeTextWithNewlines() plus the
- * unlabelled role="img" grid of the old build.
+ * alongside for assistive tech.
  */
 export function FigText(props: FigTextProps): JSX.Element {
 	const size = () => figSize(props.art);
