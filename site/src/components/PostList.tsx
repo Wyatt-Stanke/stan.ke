@@ -1,7 +1,7 @@
 import type { JSX } from "solid-js";
 import { For, onMount } from "solid-js";
-import type { LayoutMode } from "../lib/layout";
-import type { Group } from "../lib/rows";
+import type { Group, RowFit } from "../lib/rows";
+import { GROUP_GAP, TAIL_ROWS, YEAR_GAP } from "../lib/rows";
 import { attachScroll } from "../lib/scroll";
 import { cellVars } from "./Cell";
 import { PostRow } from "./PostRow";
@@ -9,7 +9,8 @@ import { YearHeader } from "./YearHeader";
 
 export interface PostListProps {
 	groups: Group[];
-	mode: LayoutMode;
+	/** Which row columns fit at this width. Same for every row. */
+	fit: RowFit;
 	/** Content width in cells. */
 	cols: number;
 	/** Visible height in cells. */
@@ -24,9 +25,10 @@ export interface PostListProps {
  * A real overflow container: touch gets native momentum, and PageUp/PageDown/
  * Home/End work for free because the element is focusable.
  *
- * The vertical gaps are margins here and constants in lib/rows.ts, and the two
- * have to agree -- totalRows() is what the scrollbar is drawn from, so a margin
- * changed on one side only shows up as the bar drifting away from the content.
+ * The vertical rhythm is pushed to CSS from lib/rows.ts here. style.css used to
+ * restate YEAR_GAP/GROUP_GAP/TAIL_ROWS as literal margins, which meant the
+ * scrollbar -- drawn from totalRows() -- drifted away from the content if only
+ * one side was changed.
  */
 export function PostList(props: PostListProps): JSX.Element {
 	let el!: HTMLElement;
@@ -39,7 +41,12 @@ export function PostList(props: PostListProps): JSX.Element {
 		<section
 			ref={el}
 			class="cell postlist"
-			style={cellVars(props.cols, props.rows)}
+			style={{
+				...cellVars(props.cols, props.rows),
+				"--year-gap": String(YEAR_GAP),
+				"--group-gap": String(GROUP_GAP),
+				"--tail-rows": String(TAIL_ROWS),
+			}}
 			tabindex="0"
 			aria-label="Posts"
 		>
@@ -58,7 +65,7 @@ export function PostList(props: PostListProps): JSX.Element {
 											>
 												<PostRow
 													post={post}
-													mode={props.mode}
+													fit={props.fit}
 													cols={props.cols}
 												/>
 											</a>

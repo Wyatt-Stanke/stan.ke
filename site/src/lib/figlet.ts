@@ -5,9 +5,6 @@ export const FONT = "Graceful";
 
 figlet.parseFont(FONT, graceful);
 
-// The old engine read field index 2 of the FIGfont header, which is the
-// *baseline*, not the height. For Graceful ("flf2a$ 4 4 8 0 ...") both are 4,
-// so the value was right by coincidence. Index 1 is the height.
 export const FONT_HEIGHT = Number.parseInt(
 	graceful.split("\n")[0].trim().split(/\s+/)[1],
 	10,

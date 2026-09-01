@@ -1,22 +1,15 @@
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import type { Post } from "../data/posts";
-import type { LayoutMode } from "../lib/layout";
-import {
-	GLYPH_COLS,
-	META_COLS,
-	MONTH_COLS,
-	POST_ROWS,
-	SPLIT_GAP,
-	STACK_GAP,
-	TAG_COLS,
-} from "../lib/rows";
+import type { RowFit } from "../lib/rows";
+import { POST_ROWS, rowTracks } from "../lib/rows";
 import { formatDuration, KINDS, monthLabel } from "../lib/taxonomy";
 import { cellVars } from "./Cell";
 
 export interface PostRowProps {
 	post: Post;
-	mode: LayoutMode;
+	/** Which columns survive at this width, from fitRow(). */
+	fit: RowFit;
 	/** Row width in cells. */
 	cols: number;
 }
@@ -28,8 +21,14 @@ export interface PostRowProps {
  * Information order is month, tag, title, duration. The tag carries the
  * taxonomy twice on purpose -- colour for medium, glyph for subtype, and the
  * word spelling out both. That redundancy is the accessibility floor and the
- * narrow-mode degradation path: stack drops the *word* first, so the two
- * pre-attentive cues are what survive.
+ * narrow-mode degradation path: the *word* is the first thing fitRow() drops,
+ * so the two pre-attentive cues are what survive.
+ *
+ * The row no longer knows about LayoutMode. It takes a RowFit and renders the
+ * columns that fit, which is what turns the old single cliff into a ramp and
+ * is why a new layout mode costs nothing here. A dropped column keeps its text
+ * as .sr-only -- out of flow, so it claims no track, and the row stays whole
+ * for a screen reader at every width.
  *
  * The columns are grid tracks, not summed calc() offsets, so every row's title
  * shares one left edge from a single track-sizing pass -- the same reason .app
@@ -37,20 +36,20 @@ export interface PostRowProps {
  */
 export function PostRow(props: PostRowProps): JSX.Element {
 	const spec = () => KINDS[props.post.kind];
-	const split = () => props.mode === "split";
 
 	return (
 		<article
-			class={`cell postrow postrow--${props.mode}`}
+			class="cell postrow"
 			style={{
 				...cellVars(props.cols, POST_ROWS),
-				"--month-cols": String(MONTH_COLS),
-				"--tag-cols": String(split() ? TAG_COLS : GLYPH_COLS),
-				"--meta-cols": String(META_COLS),
-				"--gap-cols": String(split() ? SPLIT_GAP : STACK_GAP),
+				"--gap-cols": String(props.fit.gap),
+				"grid-template-columns": rowTracks(props.fit),
 			}}
 		>
-			<time datetime={props.post.date}>
+			<time
+				class={props.fit.month ? undefined : "sr-only"}
+				datetime={props.post.date}
+			>
 				{monthLabel(props.post.date)}
 			</time>
 
@@ -61,7 +60,7 @@ export function PostRow(props: PostRowProps): JSX.Element {
 					{spec().glyph}
 				</span>
 				<Show
-					when={split()}
+					when={props.fit.label}
 					fallback={<span class="sr-only">{spec().label}</span>}
 				>
 					{` ${spec().label}`}
@@ -70,11 +69,9 @@ export function PostRow(props: PostRowProps): JSX.Element {
 
 			<span class="postrow__title">{props.post.title}</span>
 
-			<Show when={split()}>
-				<span class="postrow__meta">
-					{formatDuration(props.post.minutes)}
-				</span>
-			</Show>
+			<span class={props.fit.meta ? "postrow__meta" : "sr-only"}>
+				{formatDuration(props.post.minutes)}
+			</span>
 		</article>
 	);
 }

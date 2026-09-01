@@ -1,6 +1,5 @@
 import type { JSX } from "solid-js";
 import { createMemo } from "solid-js";
-import { scrollbarChars } from "../lib/scrollbar";
 import { cellVars } from "./Cell";
 
 export interface CharScrollbarProps {
@@ -12,7 +11,20 @@ export interface CharScrollbarProps {
 	total: number;
 }
 
-/** The `| n u #` scrollbar. Render half of drawScrollBar() (main.ts:234-262). */
+function scrollbarChars(count: number, scroll: number, total: number): string {
+	const pct = Math.min(1, Math.max(0, scroll / Math.max(1, total - count)));
+	const height = Math.max((count / Math.max(count, total)) * count, 1);
+	const start = pct * (count - height);
+	const s = Math.floor(start);
+	const e = Math.floor(start + height) - 1;
+
+	const out: string[] = new Array(count);
+	for (let i = 0; i < count; i++) {
+		out[i] = i < s || i > e ? "|" : i === s ? "n" : i === e ? "u" : "#";
+	}
+	return out.join("\n");
+}
+
 export function CharScrollbar(props: CharScrollbarProps): JSX.Element {
 	const bar = createMemo(() =>
 		scrollbarChars(props.count, props.scroll, props.total),

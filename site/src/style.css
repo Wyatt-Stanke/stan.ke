@@ -167,34 +167,53 @@ body {
  * leftover at the right and bottom edges matches the old
  * COLS = floor(innerWidth / cellWidth) geometry.
  *
- * Every track is an integer number of cells; the 1fr is therefore also an
- * integer number, because the container and the other tracks are. Two elements
- * that must share a grid line are always positioned by one common grid
- * container in a single track-sizing pass -- never by two calc()s that have to
- * sum to the container.
+ * One uniform grid of cols x rows cell tracks, rather than a per-mode
+ * template. Every grid line is now a cell boundary by construction -- there is
+ * no 1fr whose integer-ness has to be argued from the other tracks -- and a
+ * layout mode is just a set of line numbers arriving as custom properties from
+ * lib/layout.ts. Two elements that must share a grid line still get it from
+ * one track-sizing pass, never from two calc()s that have to sum.
  */
 .app {
 	display: grid;
 	inline-size: calc(var(--cols) * var(--cw));
 	block-size: calc(var(--rows) * var(--rh));
+	/* 1fr, not var(--cw): the box is already an exact whole number of cells, so
+	   an fr track *is* one cell -- but fr distribution makes the tracks sum to
+	   the container exactly, where 42 fixed 19.2px tracks each truncate to
+	   1/64px and drift 0.53px off the last grid line. Measured worst line error
+	   with fr: 0.01px. */
+	grid-template-columns: repeat(var(--cols), 1fr);
+	grid-template-rows: repeat(var(--rows), 1fr);
 }
 
-.app--split {
-	grid-template-columns: calc(var(--left) * var(--cw)) 1fr calc(1 * var(--cw));
-	grid-template-rows: 100%;
+/*
+ * The three regions. Placement is entirely data now: .app--split/.app--stack
+ * are gone, and so is the second copy of the geometry that App.tsx had to
+ * subtract by hand to agree with them.
+ */
+.app__chrome {
+	grid-column: var(--pane-col) / span var(--pane-cols);
+	grid-row: var(--pane-row) / span var(--pane-rows);
 }
 
-/* rule, title, rule, then the content pane. */
-.app--stack {
-	grid-template-columns: 1fr calc(1 * var(--cw));
-	grid-template-rows: var(--rh) var(--rh) var(--rh) 1fr;
+.app__content {
+	grid-column: var(--content-col) / span var(--content-cols);
+	grid-row: var(--content-row) / span var(--content-rows);
+	padding-inline-start: calc(var(--content-pad-start) * var(--cw));
+	padding-inline-end: calc(var(--content-pad-end) * var(--cw));
+	padding-block-start: calc(var(--content-pad-top) * var(--rh));
 }
 
-.app--stack .header {
-	grid-column: 1 / -1;
-	grid-row: 1 / 4;
+.scrollbar {
+	grid-column: var(--bar-col) / span var(--bar-cols);
+	grid-row: var(--bar-row) / span var(--bar-rows);
+}
+
+/* auto-rows, not three fixed ones: the header is 3 rows or 1, by height. */
+.header {
 	display: grid;
-	grid-template-rows: var(--rh) var(--rh) var(--rh);
+	grid-auto-rows: var(--rh);
 }
 
 /* writeText(2, 1 + i) in the old drawHeader. */
@@ -205,34 +224,6 @@ body {
 	overflow: hidden;
 	padding-block: var(--ink-overhang);
 	margin-block: calc(-1 * var(--ink-overhang));
-}
-
-.app--split .app__content {
-	grid-column: 2;
-	grid-row: 1;
-	/* drawPostList was called at rightStart + 2. */
-	padding-inline-start: calc(2 * var(--cw));
-	/* The meta column is right-flush, so without this the duration sits hard
-	   against the scrollbar glyphs. Stack already has a spare column. */
-	padding-inline-end: calc(1 * var(--cw));
-}
-
-.app--stack .app__content {
-	grid-column: 1;
-	grid-row: 4;
-	/* contentX = 1, and paneTop + 1 leaves one blank row under the header. */
-	padding-inline-start: calc(1 * var(--cw));
-	padding-block-start: var(--rh);
-}
-
-.app--split .scrollbar {
-	grid-column: 3;
-	grid-row: 1;
-}
-
-.app--stack .scrollbar {
-	grid-column: 2;
-	grid-row: 4;
 }
 
 /* ---- Box: four character strips, corners owned by top/bottom ---- */
@@ -335,49 +326,38 @@ body {
 }
 
 /*
- * Year groups. These margins are the only place the vertical rhythm lives in
- * CSS; lib/rows.ts states the same numbers as YEAR_GAP and GROUP_GAP, and
- * totalRows() feeds the scrollbar. Change one, change both.
+ * Year groups. The rhythm is lib/rows.ts's -- PostList pushes YEAR_GAP,
+ * GROUP_GAP and TAIL_ROWS down as custom properties, and totalRows() feeds the
+ * scrollbar off the same constants. CSS used to restate them as literals, so
+ * the bar drifted from the content whenever only one side was edited.
  */
 .postlist__groups {
-	padding-block-end: calc(1 * var(--rh)); /* TAIL_ROWS */
+	padding-block-end: calc(var(--tail-rows) * var(--rh));
 }
 
 .postlist__group .group__items {
-	margin-block-start: calc(1 * var(--rh)); /* YEAR_GAP */
+	margin-block-start: calc(var(--year-gap) * var(--rh));
 }
 
 .postlist__group:not(:last-child) {
-	margin-block-end: calc(2 * var(--rh)); /* GROUP_GAP */
+	margin-block-end: calc(var(--group-gap) * var(--rh));
 }
 
 /* ---- One post row ---- */
 
 /*
  * Grid tracks rather than absolute offsets: every row's title starts on the
- * same line because one track-sizing pass put it there, and the track widths
- * arrive as custom properties from lib/rows.ts so CSS never restates them.
+ * same line because one track-sizing pass put it there.
+ *
+ * The track list itself is generated by rowTracks() and arrives inline, so a
+ * column that fitRow() drops loses its track and not just its text. The two
+ * per-mode templates that used to live here could only express two widths;
+ * this expresses every one of them.
  */
 .postrow {
 	display: grid;
 	align-items: start;
 	column-gap: calc(var(--gap-cols) * var(--cw));
-}
-
-.postrow--split {
-	grid-template-columns:
-		calc(var(--month-cols) * var(--cw))
-		calc(var(--tag-cols) * var(--cw))
-		1fr
-		calc(var(--meta-cols) * var(--cw));
-}
-
-/* No label word and no duration: colour and glyph carry the taxonomy alone. */
-.postrow--stack {
-	grid-template-columns:
-		calc(var(--month-cols) * var(--cw))
-		calc(var(--tag-cols) * var(--cw))
-		1fr;
 }
 
 .postrow__meta {
