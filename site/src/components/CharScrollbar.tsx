@@ -11,12 +11,15 @@ export interface CharScrollbarProps {
 	total: number;
 }
 
+// Device pixel rounding causes the last cell to be weird sometimes
 function scrollbarChars(count: number, scroll: number, total: number): string {
 	const pct = Math.min(1, Math.max(0, scroll / Math.max(1, total - count)));
-	const height = Math.max((count / Math.max(count, total)) * count, 1);
-	const start = pct * (count - height);
-	const s = Math.floor(start);
-	const e = Math.floor(start + height) - 1;
+	const height = Math.min(
+		count,
+		Math.max(Math.round((count / Math.max(count, total)) * count), 1),
+	);
+	const s = Math.round(pct * (count - height));
+	const e = s + height - 1;
 
 	const out: string[] = new Array(count);
 	for (let i = 0; i < count; i++) {

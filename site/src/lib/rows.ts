@@ -147,7 +147,7 @@ export function rowTracks(fit: RowFit): string {
 export const YEAR_GAP = 1;
 
 /** Rows between the last post of a group and the next year's art. */
-export const GROUP_GAP = 2;
+export const GROUP_GAP = 1;
 
 export const POST_ROWS = 1;
 

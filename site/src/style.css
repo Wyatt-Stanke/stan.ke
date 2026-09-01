@@ -26,22 +26,10 @@
 	--cell-height: clamp(0.6rem, 2.2vw, 1.2rem);
 	--text-color: #000;
 	--background: #fff;
-
-	/*
-	 * Semantic, not literal, for the same reason Box/Rule take a `char` prop:
-	 * the palette is part of the taxonomy, and the taxonomy is swappable.
-	 * Colour is the medium axis; the glyph in lib/taxonomy.ts is the subtype.
-	 *
-	 * Pushed as saturated as AA allows: the three media clear 4.5:1 on
-	 * --background with little room to spare (green is the tightest at 4.63),
-	 * so brightening one further needs a contrast check, not an eyeball. The
-	 * month and duration stay grey on purpose -- they are metadata, and making
-	 * them vibrant too would flatten the hierarchy the colour axis exists for.
-	 */
+	
 	--medium-writing: #00873c;
 	--medium-video: #0062ff;
 	--medium-interactive: #aa00ff;
-	--meta-dim: #6b6b6b;
 
 	/*
 	 * How far this font's ink escapes its 1em line box. The content area is
@@ -346,10 +334,6 @@ body {
 	display: grid;
 	align-items: start;
 	column-gap: calc(var(--gap-cols) * var(--cw));
-}
-
-.postrow__meta {
-	color: var(--meta-dim);
 }
 
 /*
