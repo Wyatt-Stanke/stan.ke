@@ -1,4 +1,5 @@
 import type { JSX } from "solid-js";
+import type { BoxPad } from "../lib/layout";
 import { cellVars } from "./Cell";
 
 export interface BoxProps {
@@ -6,6 +7,8 @@ export interface BoxProps {
 	rows: number;
 	/** Border glyph. "X" is a deliberate part of the look, not a placeholder. */
 	char?: string;
+	/** Air inside the border, per side. lib/layout.ts owns the numbers. */
+	pad?: BoxPad;
 	children?: JSX.Element;
 }
 
@@ -20,8 +23,17 @@ export function Box(props: BoxProps): JSX.Element {
 	const vertical = () =>
 		Array.from({ length: props.rows }, () => char()).join("\n");
 
+	const pad = () => props.pad ?? { cols: 1, rows: 1 };
+
 	return (
-		<div class="cell box" style={cellVars(props.cols, props.rows)}>
+		<div
+			class="cell box"
+			style={{
+				...cellVars(props.cols, props.rows),
+				"--box-pad-cols": String(pad().cols),
+				"--box-pad-rows": String(pad().rows),
+			}}
+		>
 			<pre class="box__edge box__top" aria-hidden="true">
 				{horizontal()}
 			</pre>

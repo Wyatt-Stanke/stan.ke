@@ -5,7 +5,7 @@ import { Header } from "./components/Header";
 import { LeftPane } from "./components/LeftPane";
 import { PostList } from "./components/PostList";
 import { posts } from "./data/posts";
-import { createGrid } from "./lib/cell";
+import { createGrid, fitVars } from "./lib/cell";
 import { figSize, render } from "./lib/figlet";
 import { createLayout, layoutVars } from "./lib/layout";
 import { buildGroups, fitRow, totalRows } from "./lib/rows";
@@ -40,9 +40,10 @@ export function App(): JSX.Element {
 	const [scrollTop, setScrollTop] = createSignal(0);
 	const scrollRows = () => scrollTop() / (grid.cell().rh || 1);
 
-	const style = createMemo(() =>
-		layoutVars(layout(), grid.cols(), grid.rows()),
-	);
+	const style = createMemo(() => ({
+		...layoutVars(layout(), grid.cols(), grid.rows()),
+		...fitVars(grid.cell()),
+	}));
 
 	return (
 		<div ref={root} class="app-root">

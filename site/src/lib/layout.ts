@@ -13,10 +13,29 @@ export type LayoutMode = "split" | "slim" | "stack";
 
 export const BAR_COLS = 1;
 
-/** Box draws its border on the perimeter; box__inner insets past it. */
-export const BOX_PAD_COLS = 2;
-export const BOX_BORDER_COLS = 1;
+/** Box draws its border on the perimeter; both sides of each axis. */
+export const BOX_BORDER_COLS = 2;
 export const BOX_BORDER_ROWS = 2;
+
+/** Air between the border and the title, per side. */
+export interface BoxPad {
+	cols: number;
+	rows: number;
+}
+
+/**
+ * How much air each title footprint needs, which is not the same for the two.
+ *
+ * Graceful's top row is underscores sitting on the baseline, so art already
+ * reads as a blank row under the border and a pad row on top of that reads as
+ * two. Plain text is ink from its first row and first column, so it wants the
+ * row, and a single column beside six characters of it still reads as cramped.
+ *
+ * LeftPane hands the same numbers to Box, which is what keeps the drawn inset
+ * and the space reserved for it here from drifting apart.
+ */
+export const ART_PAD: BoxPad = { cols: 1, rows: 0 };
+export const TEXT_PAD: BoxPad = { cols: 2, rows: 1 };
 
 /** Richest first. */
 export const HEADER_ROWS = 3;
@@ -90,8 +109,9 @@ function region(
  * The site name's two footprints, measured the same way off the same string.
  *
  * Which one a mode draws is the only thing separating split from slim, so both
- * travel together and the builder picks one -- the difference stays a matter of
- * size rather than of kind, and neither builder knows what figlet is.
+ * travel together and the builder picks one with its pad -- the difference
+ * stays a footprint rather than a kind, and neither builder knows what figlet
+ * is.
  */
 export interface TitleSize {
 	/** The name as figlet art. */
@@ -118,14 +138,16 @@ function buildPane(
 	mode: LayoutMode,
 	chrome: ChromeKind,
 	title: FigSize,
+	pad: BoxPad,
 	cols: number,
 	rows: number,
 ): Layout | null {
-	const need = title.cols + BOX_PAD_COLS + BOX_BORDER_COLS;
+	const need = title.cols + BOX_BORDER_COLS + 2 * pad.cols;
 	const afford =
 		cols - BAR_COLS - SPLIT_PAD_START - SPLIT_PAD_END - MIN_ROW_COLS;
 	if (afford < need) return null;
-	if (rows < Math.max(title.rows + BOX_BORDER_ROWS, MIN_LIST_ROWS)) {
+	const needRows = title.rows + BOX_BORDER_ROWS + 2 * pad.rows;
+	if (rows < Math.max(needRows, MIN_LIST_ROWS)) {
 		return null;
 	}
 
@@ -146,18 +168,18 @@ function buildPane(
 	};
 }
 
-/** Laptop and up: the name as figlet art. Needs 83 columns and 10 rows. */
+/** Laptop and up: the name as figlet art. Needs 84 columns and 10 rows. */
 const buildSplit: Builder = (cols, rows, title) =>
-	buildPane("split", "pane", title.art, cols, rows);
+	buildPane("split", "pane", title.art, ART_PAD, cols, rows);
 
 /**
  * The band between a laptop and a phone: the pane kept, the art dropped. 35x8
- * of figlet needs 83 columns; the same two words in plain text need 54, so this
- * covers the ~30-column stretch -- a portrait tablet, a half-width desktop
+ * of figlet needs 84 columns; the same two words in plain text need 57, so this
+ * covers the ~27-column stretch -- a portrait tablet, a half-width desktop
  * window -- with the width for a side pane but not for the art.
  */
 const buildSlim: Builder = (cols, rows, title) =>
-	buildPane("slim", "plain", title.text, cols, rows);
+	buildPane("slim", "plain", title.text, TEXT_PAD, cols, rows);
 
 /**
  * Narrow, and the terminal fallback: chrome across the top, list below. The

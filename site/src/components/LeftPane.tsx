@@ -1,6 +1,7 @@
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import { figSize } from "../lib/figlet";
+import { ART_PAD, TEXT_PAD } from "../lib/layout";
 import { Box } from "./Box";
 import { cellVars } from "./Cell";
 import { FigText } from "./FigText";
@@ -39,7 +40,11 @@ function PlainTitle(props: { text: string }): JSX.Element {
  */
 export function LeftPane(props: LeftPaneProps): JSX.Element {
 	return (
-		<Box cols={props.cols} rows={props.rows}>
+		<Box
+			cols={props.cols}
+			rows={props.rows}
+			pad={props.art ? ART_PAD : TEXT_PAD}
+		>
 			<Show when={props.art} fallback={<PlainTitle text={props.text} />}>
 				{(art) => <FigText as="h1" art={art()} text={props.text} />}
 			</Show>
