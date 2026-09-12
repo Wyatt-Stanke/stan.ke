@@ -184,5 +184,11 @@ export function fitVars(cell: FittedCell): JSX.CSSProperties {
 		// initial 16px -- a 20% type size error, not a rounding one.
 		"font-size": `${cell.fs}px`,
 		"letter-spacing": `${cell.tracking}px`,
+		// Both also published as properties, so a run that opts out of the
+		// fitted type -- proportional prose -- can hand the cell metrics back
+		// to the monospaced elements inside it, which still have to land on
+		// cell boundaries.
+		"--fs": `${cell.fs}px`,
+		"--tracking": `${cell.tracking}px`,
 	};
 }

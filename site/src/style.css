@@ -27,6 +27,20 @@
 	--gutter: clamp(4px, 0.2vw, 10px);
 	--text-color: #000;
 	--background: #fff;
+	/* Rails, list markers, the meta line: present but not competing with the
+	   text. 5.3:1 on white, so it clears AA for body text as well. */
+	--muted: #6b6b6b;
+
+	/*
+	 * Code tokens, mapped onto the three hues the site already has rather than
+	 * inventing more. In the list those hues mean medium; here they mean what
+	 * a token *is*, which is a different axis on a different page, and the
+	 * alternative is a fourth and fifth colour for one component.
+	 */
+	--code-value: var(--medium-writing);
+	--code-language: var(--medium-interactive);
+	--code-name: var(--medium-video);
+	--code-quiet: var(--muted);
 
 	--medium-writing: #00873c;
 	--medium-video: #0062ff;
@@ -41,6 +55,20 @@
 	 * up with room to spare.
 	 */
 	--ink-overhang: 0.15em;
+
+	/*
+	 * The reading face. Scoped to the body of a post and nowhere else: :root
+	 * must stay monospaced or the cell measurement below it means nothing.
+	 * The size is under 1em because Roboto's x-height runs larger than
+	 * Libertinus Mono's at the same em, and the leading is the one number on
+	 * the site that is deliberately not a whole row.
+	 */
+	--prose-family:
+		"Roboto Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+		Roboto, Helvetica, Arial, sans-serif;
+	--prose-size: 0.95em;
+	--prose-leading: 1.6;
+
 	--font-family:
 		"Libertinus Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, "Liberation Mono", "Courier New", monospace;
@@ -131,13 +159,55 @@ body {
    :where() keeps this at (0,1,0) so it behaves as a baseline rather than
    outranking component classes -- a plain `.app h1` is (0,1,1) and would beat
    `.header__title`, silently dropping its indent. */
-.app :where(h1, h2, p, pre, ul, li, article, header, time) {
+.app
+:where(
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6,
+	p,
+	pre,
+	code,
+	ul,
+	ol,
+	li,
+	article,
+	header,
+	section,
+	time,
+	blockquote,
+	figure,
+	table,
+	thead,
+	tbody,
+	tr,
+	th,
+	td,
+	button,
+	fieldset,
+	legend,
+	figure,
+	figcaption,
+	label,
+	input
+) {
 	margin: 0;
 	padding: 0;
 	border: 0;
 	font: inherit;
 	line-height: var(--rh);
 	list-style: none;
+	text-align: start;
+}
+
+.app :where(button) {
+	background: none;
+	color: inherit;
+	letter-spacing: inherit;
+	cursor: pointer;
+	appearance: none;
 }
 
 .app :where(a) {
@@ -383,15 +453,17 @@ body {
 	text-overflow: ellipsis;
 }
 
-.postrow__tag[data-medium="writing"] {
+/* Keyed off the attribute alone: colour is the medium axis wherever it is
+   carried, on a row in the list or on the meta line of a post. */
+[data-medium="writing"] {
 	color: var(--medium-writing);
 }
 
-.postrow__tag[data-medium="video"] {
+[data-medium="video"] {
 	color: var(--medium-video);
 }
 
-.postrow__tag[data-medium="interactive"] {
+[data-medium="interactive"] {
 	color: var(--medium-interactive);
 }
 
@@ -416,6 +488,506 @@ body {
 
 .postlist__link:hover .postrow__title {
 	text-decoration: underline;
+}
+
+/* ---- Reader: one post in the content region ---- */
+
+/*
+ * Same overflow contract as .postlist -- a real scroll container, its own
+ * scrollbar hidden because CharScrollbar draws the visible one -- and the same
+ * reason for omitting size containment.
+ */
+.reader {
+	overflow-y: auto;
+	overflow-x: clip;
+	overscroll-behavior: contain;
+	touch-action: pan-y;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	contain: layout style;
+}
+
+.reader::-webkit-scrollbar {
+	inline-size: 0;
+	block-size: 0;
+	display: none;
+}
+
+.reader:focus-visible {
+	outline: none;
+}
+
+/* lib/prose.ts caps the measure; the content region is far wider than
+   anything readable at any desktop width. */
+.reader__body {
+	inline-size: calc(var(--measure) * var(--cw));
+	max-inline-size: 100%;
+	padding-block-end: calc(var(--tail-rows) * var(--rh));
+	/* .reader is a .cell, and .cell is `white-space: pre` -- correct for a
+	   fixed footprint, fatal for prose, which is the one thing on the site
+	   that has to wrap. The elements that still need pre set it themselves. */
+	white-space: normal;
+}
+
+/* The header stays monospaced in both typefaces. It is chrome for the post,
+   not the post's text, and keeping it on the grid is what lets the rule under
+   it line up with the measure exactly. */
+.reader__nav {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	block-size: var(--rh);
+}
+
+.reader__back:hover,
+.reader__back:focus-visible {
+	text-decoration: underline;
+}
+
+/* fieldset for the grouping semantics only; its UA min-inline-size of
+   min-content would otherwise stop it shrinking with the row. */
+.reader__face {
+	display: flex;
+	justify-self: end;
+	column-gap: var(--cw);
+	min-inline-size: 0;
+}
+
+.reader__facebtn[aria-pressed="false"] {
+	color: var(--muted);
+}
+
+.reader__facebtn[aria-pressed="true"] {
+	text-decoration: underline;
+}
+
+.reader__facesep {
+	color: var(--muted);
+}
+
+.reader__title {
+	margin-block-start: var(--rh);
+}
+
+.reader__meta {
+	display: flex;
+	column-gap: calc(2 * var(--cw));
+	color: var(--muted);
+}
+
+/* ---- Prose ---- */
+
+.prose {
+	margin-block-start: calc(var(--head-gap) * var(--rh));
+	--block-space: calc(var(--block-gap) * var(--rh));
+}
+
+/*
+ * The one place on the site that leaves the row grid. Only the running text
+ * moves: rules, rails, markers and code are pulled back onto the cell below,
+ * and the chrome around the article never sees this rule at all.
+ */
+[data-typeface="prose"] .prose {
+	font-family: var(--prose-family);
+	font-size: var(--prose-size);
+	line-height: var(--prose-leading);
+	/* The fitted tracking exists to make a monospaced run sum to cols * cw.
+	   A proportional face has no cell boundaries to hit, and inheriting the
+	   residue as letter-spacing just loosens the word shapes. */
+	letter-spacing: normal;
+	--block-space: 0.9em;
+}
+
+.prose > * {
+	margin-block-start: var(--block-space);
+}
+
+.prose > *:first-child {
+	margin-block-start: 0;
+}
+
+/* Blocks nested inside a rail or a list item get the same rhythm, without the
+   first-child exception mattering. */
+.prose__railed > * + *,
+.prose__item > * + * {
+	margin-block-start: var(--block-space);
+}
+
+/*
+ * Monospaced by meaning, so pinned to the cell in both typefaces: --fs and
+ * --tracking come down from fitVars() precisely so this can be undone locally.
+ */
+.rail,
+.prose__underline,
+.prose__code-block,
+.prose__table,
+.prose__item::before {
+	font-family: var(--font-family);
+	font-size: var(--fs);
+	line-height: var(--rh);
+	letter-spacing: var(--tracking);
+}
+
+/* Libertinus Mono ships Regular only, so this is synthesised. Safe here in a
+   way it would not be in a `white-space: pre` run: prose is wrapped text, so
+   a hair of extra advance moves a line break and nothing else. */
+.prose__h,
+.prose strong {
+	font-weight: 700;
+}
+
+.prose em {
+	font-style: italic;
+}
+
+/* The rule is absolutely positioned, so the box shrinks to the text and the
+   rule fills whatever that came to -- the whole heading ladder is this one
+   difference between h2 and h3. */
+.prose__h-fit {
+	position: relative;
+	display: block;
+	inline-size: 100%;
+	padding-block-end: var(--rh);
+}
+
+h3.prose__h > .prose__h-fit {
+	inline-size: fit-content;
+	max-inline-size: 100%;
+}
+
+.prose__underline {
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: 0;
+	margin: 0;
+	white-space: pre;
+	/* `clip` rather than `hidden`: hidden coerces the other axis to auto and
+	   the rule would clip its own ink. Nothing here needs text-overflow. */
+	overflow-x: clip;
+	overflow-y: visible;
+	user-select: none;
+}
+
+.prose__h {
+	margin-block-start: calc(
+		var(--block-space) +
+		var(--heading-lead) *
+		var(--rh)
+	);
+}
+
+.prose__minor {
+	font-weight: 700;
+}
+
+.prose__link {
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+/* ---- Rails: quotes and code ---- */
+
+.prose__quote,
+.prose__pre {
+	position: relative;
+	padding-inline-start: calc(2 * var(--cw));
+	/* A block formatting context, so the clip-box trick below stays a no-op on
+	   the outside. Without it the code block's negative margins collapse
+	   through the wrapper while its padding does not, and the block comes out
+	   0.3 rows tall than the code it holds. */
+	display: flow-root;
+}
+
+.rail {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: 0;
+	inline-size: var(--cw);
+	margin: 0;
+	white-space: pre;
+	/* The point of the component: the strip is drawn past any plausible block
+	   height and cut to the box it is in. */
+	overflow: hidden;
+	color: var(--muted);
+	user-select: none;
+}
+
+.prose__quote > .prose__railed {
+	font-style: italic;
+}
+
+/*
+ * Code scrolls on its own rather than widening the measure. The rail sits on
+ * the wrapper, not in here, so it stays put while the code moves under it.
+ *
+ * Same clip-box trick as .postrow: overflow-x: auto would coerce the block
+ * axis to auto and shave descenders, so the clip edge is pushed past the ink
+ * and pulled back with a negative margin.
+ */
+.prose__code-block {
+	margin: 0;
+	white-space: pre;
+	overflow-x: auto;
+	padding-block: var(--ink-overhang);
+	margin-block: calc(-1 * var(--ink-overhang));
+}
+
+/* Inline: the face, not the metrics. An identifier that reflows into a
+   proportional face stops reading as code; matching the cell exactly matters
+   only where whitespace is load-bearing, which is the block above. */
+.prose__code {
+	font-family: var(--font-family);
+}
+
+/* ---- Lists ---- */
+
+.prose__item {
+	display: grid;
+	grid-template-columns: calc(var(--marker-cols) * var(--cw)) 1fr;
+}
+
+/* Its own track, not a negative text-indent: a wrapped line has to hang
+   against the text, and in the proportional face there is no indent to
+   negate. */
+.prose__item::before {
+	content: "-";
+	color: var(--muted);
+}
+
+.prose__list[data-marker="number"] {
+	counter-reset: prose-item;
+}
+
+.prose__list[data-marker="number"] > .prose__item {
+	counter-increment: prose-item;
+}
+
+/* Right-aligned in its track with one cell held back, so the period sits the
+   same distance from the text whether the number is one digit or two. */
+.prose__list[data-marker="number"] > .prose__item::before {
+	content: counter(prose-item) ".";
+	text-align: end;
+	padding-inline-end: var(--cw);
+}
+
+.prose__item > .prose__list {
+	margin-block-start: 0;
+}
+
+/* ---- Rule, tables, images ---- */
+
+.prose__hr {
+	position: relative;
+	block-size: var(--rh);
+	color: var(--muted);
+}
+
+.prose__tablewrap {
+	overflow-x: auto;
+}
+
+/* collapse, not the UA default: `separate` adds border-spacing between every
+   pair of rows, which is 2px of non-row nobody asked for. */
+.prose__table {
+	border-collapse: collapse;
+}
+
+.prose__table :where(th, td) {
+	padding-inline-end: calc(2 * var(--cw));
+	vertical-align: top;
+}
+
+/* Underlined rather than ruled off: a border here would be the one edge on the
+   site not made of characters, and a character rule cannot span cells whose
+   widths the table decides. */
+.prose__table th {
+	text-decoration: underline;
+}
+
+.prose__img {
+	display: block;
+	max-inline-size: 100%;
+	block-size: auto;
+}
+
+.missing {
+	color: var(--muted);
+}
+
+/* ---- Code highlighting ---- */
+
+/*
+ * highlight.js classes, coloured by what the token is rather than by which
+ * language produced it:
+ *
+ *   value     what you wrote down -- strings, numbers, literals
+ *   language  what the language reserved -- keywords, built-ins, types
+ *   name      what you named -- functions, classes, properties, attributes
+ *   quiet     not code -- comments and metadata
+ *
+ * Punctuation and operators are left at ink. They are on every line, so
+ * colouring them turns the block into confetti.
+ *
+ * Highlighting happens at build time (see vite.config.ts), so these classes
+ * arrive as static markup and the page ships no highlighter.
+ */
+.hljs-string,
+.hljs-number,
+.hljs-literal,
+.hljs-regexp,
+.hljs-char,
+.hljs-symbol,
+.hljs-addition {
+	color: var(--code-value);
+}
+
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type,
+.hljs-selector-tag,
+.hljs-tag,
+.hljs-name,
+.hljs-doctag,
+.hljs-bullet {
+	color: var(--code-language);
+}
+
+.hljs-title,
+.hljs-class,
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-section,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-attr {
+	color: var(--code-name);
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-meta,
+.hljs-deletion {
+	color: var(--code-quiet);
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: 700;
+}
+
+.hljs-link {
+	text-decoration: underline;
+}
+
+/* ---- Interactive components ---- */
+
+/*
+ * A widget is a picture of the grid, so it stays on the grid in both
+ * typefaces -- the numbers it prints are the ones the page is laid out with.
+ */
+.demo {
+	font-family: var(--font-family);
+	font-size: var(--fs);
+	line-height: var(--rh);
+	letter-spacing: var(--tracking);
+}
+
+.demo__row {
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	column-gap: calc(2 * var(--cw));
+	block-size: var(--rh);
+	/* A backstop, not the fix -- GridProbe shortens the formula so it fits, and
+	   `white-space: pre` stops it wrapping into the row above.
+
+	   `clip` rather than .postrow's padded `hidden`: these rows are siblings in
+	   normal flow, so the negative margin that trick needs to cancel its
+	   padding would pull them 0.3 rows into each other instead of cancelling.
+	   clip is exempt from the coercion that would turn the block axis into
+	   `auto`, so descenders survive on their own. */
+	overflow-x: clip;
+	overflow-y: visible;
+}
+
+/* Only the slider gives ground when the measure is narrow; the label track and
+   the readout are what the row is aligned on. */
+.demo__key,
+.demo__value {
+	flex: none;
+	color: var(--muted);
+}
+
+.demo__key {
+	inline-size: calc(6 * var(--cw));
+}
+
+.demo__range {
+	inline-size: calc(24 * var(--cw));
+	min-inline-size: calc(6 * var(--cw));
+	block-size: var(--rh);
+	accent-color: var(--medium-interactive);
+}
+
+/* A formula, so it never wraps -- see the note in GridProbe. */
+.demo__calc {
+	white-space: pre;
+}
+
+.demo__bar {
+	margin: 0;
+	white-space: pre;
+	color: var(--medium-interactive);
+}
+
+/* ---- prose: the character rules come off ---- */
+
+/*
+ * A rule made of glyphs is a monospaced idiom. Beside a proportional face it
+ * stops reading as a line and starts reading as a row of X's, so in `prose`
+ * every one of them goes.
+ *
+ * The decorative ones are simply dropped: Roboto has real weights, so the
+ * heading ladder is carried by size and weight, which is what a proportional
+ * face would have used in the first place. The two that are structural -- the
+ * thematic break and the header's separator -- come back as hairlines, and
+ * each keeps the row its character version occupied.
+ */
+[data-typeface="prose"] .prose__underline {
+	display: none;
+}
+
+[data-typeface="prose"] .prose__h-fit {
+	padding-block-end: 0;
+}
+
+[data-typeface="prose"] h2.prose__h {
+	font-size: 1.3em;
+}
+
+[data-typeface="prose"] h3.prose__h {
+	font-size: 1.1em;
+}
+
+[data-typeface="prose"] .prose__hr {
+	block-size: 0;
+	border-block-start: 1px solid var(--muted);
+}
+
+[data-typeface="prose"] .reader__head .rule {
+	display: none;
+}
+
+/* Exactly what the dropped rule occupied: one row, minus the hairline now
+   drawing at the bottom of it. */
+[data-typeface="prose"] .reader__head {
+	padding-block-end: calc(var(--rh) - 1px);
+	border-block-end: 1px solid var(--muted);
 }
 
 /* ---- Dev-only grid overlay: /?grid=1 ---- */

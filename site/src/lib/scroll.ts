@@ -10,7 +10,7 @@ const KEY_ROWS = 3;
  */
 const DAMP = 1 / 10;
 
-function isEditable(node: EventTarget | null): boolean {
+export function isEditable(node: EventTarget | null): boolean {
 	const el = node as HTMLElement | null;
 	if (!el || typeof el.tagName !== "string") return false;
 	return (
@@ -21,9 +21,36 @@ function isEditable(node: EventTarget | null): boolean {
 	);
 }
 
+/**
+ * What the container looks like right now, in pixels. `max` and `viewport`
+ * are here because prose height is not derivable: mono prose is row-exact,
+ * but Roboto lines are laid out by the browser, so the only honest source for
+ * the scrollbar on a post is measurement.
+ */
+export interface ScrollView {
+	top: number;
+	/** Largest reachable scrollTop. */
+	max: number;
+	viewport: number;
+	content: number;
+}
+
+export interface ScrollOptions {
+	/**
+	 * Whether to land scroll positions on whole rows. False for prose set with
+	 * real leading, where a row is no longer the unit a line occupies.
+	 */
+	snap?: () => boolean;
+}
+
 export interface ScrollControls {
 	/** Current scroll offset in pixels, as the DOM reports it. */
 	read: () => number;
+	/**
+	 * Re-report the view without a scroll event. Content height changes when
+	 * the measure changes or the typeface is swapped, and neither fires one.
+	 */
+	sync: () => void;
 }
 
 /**
@@ -37,18 +64,19 @@ export interface ScrollControls {
 export function attachScroll(
 	el: HTMLElement,
 	rh: () => number,
-	onScroll: (top: number) => void,
+	onScroll: (view: ScrollView) => void,
+	options: ScrollOptions = {},
 ): ScrollControls {
+	const snap = () => options.snap?.() ?? true;
 	// Private float accumulator: sub-row motion collects here but never renders.
 	let target = el.scrollTop;
 	let queued = false;
 
 	const maxScroll = () => {
+		const span = el.scrollHeight - el.clientHeight;
+		if (!snap()) return Math.max(0, span);
 		const row = rh() || 1;
-		return Math.max(
-			0,
-			Math.round((el.scrollHeight - el.clientHeight) / row) * row,
-		);
+		return Math.max(0, Math.round(span / row) * row);
 	};
 	const clamp = (v: number) => Math.min(Math.max(v, 0), maxScroll());
 
@@ -60,7 +88,7 @@ export function attachScroll(
 		const row = rh() || 1;
 		// Assign wholesale rather than scrollBy(): scrollBy re-reads scrollTop,
 		// which the compositor may already have rounded, losing the remainder.
-		el.scrollTop = Math.floor(target / row) * row;
+		el.scrollTop = snap() ? Math.floor(target / row) * row : target;
 		selfWrite = el.scrollTop;
 	};
 
@@ -110,6 +138,13 @@ export function attachScroll(
 	// device-pixel precision, so a row height of 19.2px comes back as 58 rather
 	// than 57.6, and adopting that into `target` bleeds a third of a row on
 	// every keypress (3, 5.99, 8.02, 10.99 ... instead of 3, 6, 9, 12).
+	const view = (): ScrollView => ({
+		top: el.scrollTop,
+		max: Math.max(0, el.scrollHeight - el.clientHeight),
+		viewport: el.clientHeight,
+		content: el.scrollHeight,
+	});
+
 	let syncing = false;
 	const handleScroll = () => {
 		if (Math.abs(el.scrollTop - selfWrite) < 1) {
@@ -121,7 +156,7 @@ export function attachScroll(
 		syncing = true;
 		requestAnimationFrame(() => {
 			syncing = false;
-			onScroll(el.scrollTop);
+			onScroll(view());
 		});
 	};
 
@@ -135,5 +170,10 @@ export function attachScroll(
 		window.removeEventListener("keydown", handleKey);
 	});
 
-	return { read: () => el.scrollTop };
+	const sync = () => onScroll(view());
+	// The first report has to wait for layout: on mount the element is in the
+	// tree but its scrollHeight is not yet what the fitted cell will make it.
+	requestAnimationFrame(sync);
+
+	return { read: () => el.scrollTop, sync };
 }

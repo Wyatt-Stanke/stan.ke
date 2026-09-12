@@ -1,0 +1,93 @@
+---
+title: "Test post"
+kind: "post"
+date: "2026-09-01"
+minutes: 6
+description: "The first post through the MDX renderer, exercising every block it knows how to draw."
+---
+
+import { GridProbe } from "../components/demo/GridProbe";
+
+This is the first post to go through the renderer, and it exists to exercise it.
+Every block below is here because something in the pipeline draws it differently,
+so the page doubles as a proof sheet: if a rule lands half a cell off, or a
+descender gets shaved, it shows up here first.
+
+Prose sets in a measure capped well short of the content region, because a line
+of monospace running the full width of a desktop window is unreadable no matter
+how exactly it lands on the grid.
+
+## Headings carry a rule
+
+A heading is its text plus a rule underneath, and the length of that rule is the
+only thing separating the levels. A second-level heading rules the full measure.
+
+### A third-level heading
+
+A third-level heading rules only its own width, so the ladder reads as one idiom
+at two weights rather than as two unrelated marks.
+
+## Inline runs
+
+Text can be *emphasised*, or **set strong**, or both at once in a single run.
+Inline code such as `createGrid()` stays in Libertinus Mono whatever the body is
+set in, because a monospaced identifier that reflows into a proportional face
+stops looking like code. Links are [plain underlines](/) in the ink colour: the
+two colour axes on this site already mean *medium*, and a third meaning would
+collide with them.
+
+> A blockquote is indented behind a rail of border characters, drawn with the
+> same glyph as the pane border rather than a CSS edge. The rail is clipped to
+> the height of the quote, so it costs nothing to have one of any length.
+
+## Lists
+
+Markers sit in their own fixed track, so wrapped lines hang against the text and
+not against the bullet:
+
+- The first item, short enough to sit on one line.
+- The second item is long enough to wrap, which is the whole reason the marker
+  gets a track of its own instead of a negative text indent.
+- The third item.
+
+Ordered lists get a wider marker track, since the number can reach two digits:
+
+1. Parse the frontmatter into a post entry.
+2. Render the body through the component map.
+3. Snap the result onto the character grid.
+
+## Interactive
+
+A component in the body is live in the HTML and flattened to its `alt` text in
+the Markdown, so nothing that cannot run it is left guessing at what it said:
+
+<GridProbe alt="A slider over viewport width, showing the column count fall out of floor(width / cell width) and drawing that many characters." />
+
+## Code
+
+Code blocks scroll horizontally on their own rather than widening the measure,
+and are highlighted at build time, so the page ships spans rather than a
+highlighter:
+
+```ts
+// Values are green, keywords purple, the names you chose blue.
+const MEASURE_COLS = 68;
+
+export function measureCols(available: number): number {
+	if (available <= 0) throw new RangeError("no room");
+	return Math.min(MEASURE_COLS, available);
+}
+```
+
+## Tables
+
+| Element     | Mono              | Roboto             |
+| ----------- | ----------------- | ------------------ |
+| paragraph   | one line per row  | comfortable        |
+| rule        | border characters | border characters  |
+| inline code | Libertinus Mono   | Libertinus Mono    |
+
+---
+
+Everything above the rule is the proof sheet. Everything below it is real
+content, of which there is none yet.

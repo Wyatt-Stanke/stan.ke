@@ -2,7 +2,7 @@ import type { JSX } from "solid-js";
 import { For, onMount } from "solid-js";
 import type { Group, RowFit } from "../lib/rows";
 import { GROUP_GAP, TAIL_ROWS, YEAR_GAP } from "../lib/rows";
-import { attachScroll } from "../lib/scroll";
+import { attachScroll, type ScrollView } from "../lib/scroll";
 import { cellVars } from "./Cell";
 import { PostRow } from "./PostRow";
 import { YearHeader } from "./YearHeader";
@@ -16,7 +16,7 @@ export interface PostListProps {
 	/** Visible height in cells. */
 	rows: number;
 	rh: () => number;
-	onScroll: (top: number) => void;
+	onScroll: (view: ScrollView) => void;
 }
 
 /**
