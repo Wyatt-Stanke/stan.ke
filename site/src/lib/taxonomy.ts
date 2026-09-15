@@ -28,7 +28,8 @@ export type Kind =
 	| "series"
 	| "site"
 	| "game"
-	| "app";
+	| "app"
+	| "webport";
 
 export interface KindSpec {
 	medium: Medium;
@@ -55,6 +56,8 @@ export const KINDS: Record<Kind, KindSpec> = {
 	site: { medium: "interactive", label: "site", glyph: "§" },
 	game: { medium: "interactive", label: "game", glyph: "★" },
 	app: { medium: "interactive", label: "app", glyph: "¤" },
+	// TODO: Change webport glyph to something in the Libertinus Mono charset.
+	webport: { medium: "interactive", label: "webport", glyph: "✸" },
 };
 
 /** Width of the label column, derived so it can never drift from the table. */
