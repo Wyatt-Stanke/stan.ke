@@ -92,7 +92,25 @@ function postPage(shell: string, post: PostSource): string {
 		);
 }
 
-/** Without this the posts exist but nothing that cannot run the app can find them. */
+/** Markdown link text: only brackets and backslashes can break out of it. */
+const mdEsc = (s: string): string => s.replace(/[\\[\]]/g, "\\$&");
+
+const INDEX_COMMENT = `<!--
+  Hello, human-like robots and robot-like humans.
+
+  This index is available in two formats:
+
+    /           this page -- HTML; a script swaps the list below for the app
+    /index.md   Markdown, linking each post's own .md
+
+  Every post is likewise at /posts/<slug>, /posts/<slug>.md and /posts/<slug>.mdx.
+-->`;
+
+/**
+ * Without this the posts exist but nothing that cannot run the app can find
+ * them. Deliberately a bare list of links and nothing else, so a curl of the
+ * front page is a screenful rather than the whole site.
+ */
 function indexPage(shell: string, posts: PostSource[]): string {
 	const list = posts
 		.map(
@@ -100,16 +118,44 @@ function indexPage(shell: string, posts: PostSource[]): string {
 				`<li><a href="/posts/${p.slug}">${esc(p.meta.title)}</a> <time datetime="${esc(p.meta.date)}">${esc(p.meta.date)}</time></li>`,
 		)
 		.join("\n");
-	return shell.replace(
-		APP_DIV,
-		withFallback(`<h1>Wyatt Stanke</h1>\n<ul>\n${list}\n</ul>`),
-	);
+	return shell
+		.replace(
+			"</head>",
+			'  <link rel="alternate" type="text/markdown" href="/index.md" title="Index as Markdown" />\n  </head>',
+		)
+		.replace(
+			APP_DIV,
+			`${INDEX_COMMENT}\n${withFallback(`<h1>Wyatt Stanke</h1>\n<ul>\n${list}\n</ul>`)}`,
+		);
+}
+
+/** The same index as Markdown, pointing at each post's .md rather than its page. */
+function indexMarkdown(posts: PostSource[]): string {
+	const list = posts.map(({ slug, meta }) => {
+		const line = [
+			`[${mdEsc(meta.title)}](/posts/${slug}.md)`,
+			meta.date,
+			meta.kind,
+			...(meta.minutes == null ? [] : [`${meta.minutes} min`]),
+		].join(" · ");
+		return meta.description
+			? `- ${line}\n  ${meta.description}`
+			: `- ${line}`;
+	});
+	return [
+		"# Wyatt Stanke",
+		"Writing and projects, newest first. Each link is the post as Markdown; drop the `.md` for the HTML page.",
+		list.join("\n"),
+	]
+		.join("\n\n")
+		.concat("\n");
 }
 
 /**
  * Everything the build emits for a client that will not run the app: a static
- * page per post, the Markdown and MDX behind it, a static index so all of that
- * is reachable, and the 404 fallback history routing needs.
+ * page per post, the Markdown and MDX behind it, a static index in HTML and
+ * Markdown so all of that is reachable, and the 404 fallback history routing
+ * needs.
  *
  * One plugin rather than several because they share one input -- the built
  * index.html -- and the post pages have to be derived from it *before* the
@@ -154,7 +200,18 @@ function staticSite(): Plugin {
 					});
 				}
 
-				index.source = indexPage(shell, posts);
+				// Newest first, as the app lists them. readPosts goes by
+				// filename, which only matches by accident.
+				const listed = [...posts].sort((a, b) =>
+					a.meta.date < b.meta.date ? 1 : -1,
+				);
+				this.emitFile({
+					type: "asset",
+					fileName: "index.md",
+					source: indexMarkdown(listed),
+				});
+
+				index.source = indexPage(shell, listed);
 				// GitHub Pages serves this for any path it holds no file for,
 				// which is what answers a cold load of an unknown client-side
 				// route. Copied from the finished index so its hashed asset
