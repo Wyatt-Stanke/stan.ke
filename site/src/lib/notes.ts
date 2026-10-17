@@ -14,8 +14,12 @@ const SUPERSCRIPT = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 export const superscript = (n: string): string =>
 	n.replace(/\d/g, (d) => SUPERSCRIPT[Number(d)]);
 
-/** Slack for the float error in a length that is a whole number of rows. */
-const EPS = 0.05;
+/**
+ * Slack for the float error in a length that is a whole number of rows. Kept
+ * well under the fractions the proportional face really produces -- two lines
+ * of it are 3.04 rows, which has to count as 4.
+ */
+const EPS = 0.01;
 
 /** One margin note as the layout sees it, in rows from the top of the prose. */
 export interface NoteSpec {
