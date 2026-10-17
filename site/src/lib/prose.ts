@@ -31,6 +31,32 @@ export const TAIL_ROWS = 2;
 export const BULLET_COLS = 2;
 export const NUMBER_COLS = 4;
 
+/*
+ * Margin notes. The content region is far wider than the measure on a wide
+ * screen, and the cells left over beside it are where a footnote reads best:
+ * level with the line that cites it, with no jump to the foot of the page and
+ * back. Below the threshold the notes fold into the text instead -- see
+ * components/Notes.tsx.
+ */
+
+/** Gutter between the measure and the margin. */
+export const SIDENOTE_GAP = 4;
+
+/** Narrowest margin worth setting a note in; under this the notes go inline. */
+export const SIDENOTE_MIN_COLS = 20;
+
+/** Widest margin a note is set to, for the same reason the measure is capped. */
+export const SIDENOTE_MAX_COLS = 34;
+
+/** Blank rows between two margin notes stacked because they would collide. */
+export const SIDENOTE_STACK_GAP = 1;
+
+/** Margin width in cells at this content width, or 0 for inline notes. */
+export function sidenoteCols(available: number): number {
+	const room = available - measureCols(available) - SIDENOTE_GAP;
+	return room < SIDENOTE_MIN_COLS ? 0 : Math.min(SIDENOTE_MAX_COLS, room);
+}
+
 /**
  * How many rows a rail draws before it runs out. It is a column of characters
  * clipped to the block beside it, so this is only an upper bound on block

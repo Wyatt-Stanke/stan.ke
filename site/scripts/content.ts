@@ -48,6 +48,7 @@ interface JsxNode {
 	type: string;
 	name?: string | null;
 	attributes?: { type: string; name?: string; value?: unknown }[];
+	children?: JsxNode[];
 	position?: Offsets;
 }
 
@@ -58,7 +59,8 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
  *
  * `alt` is required by convention rather than by the type system -- there is
  * no compile step between an .mdx file and this -- so a component without one
- * degrades to its tag name instead of vanishing silently.
+ * degrades to its tag name instead of vanishing silently. One without an alt
+ * that wraps content is unwrapped instead; see innerSpan().
  */
 function altOf(node: JsxNode): string {
 	const attr = node.attributes?.find(
@@ -66,6 +68,25 @@ function altOf(node: JsxNode): string {
 	);
 	if (typeof attr?.value === "string") return attr.value;
 	return `${node.name ?? "component"} (no alt text)`;
+}
+
+const hasAlt = (node: JsxNode): boolean =>
+	node.attributes?.some(
+		(a) => a.type === "mdxJsxAttribute" && a.name === "alt",
+	) ?? false;
+
+/**
+ * The source between a wrapper's tags, for a component that only styles what
+ * it holds -- `<Inv>` -- and so has nothing to say in an alt that its content
+ * does not already say. Null when there is nothing to unwrap.
+ */
+function innerSpan(node: JsxNode): [number, number] | null {
+	const first = node.children?.at(0);
+	const last = node.children?.at(-1);
+	if (!first || !last) return null;
+	const a = spanOf(first);
+	const b = spanOf(last);
+	return a && b ? [a[0], b[1]] : null;
 }
 
 /** Source offsets are only usable if remark actually recorded both ends. */
@@ -102,25 +123,28 @@ export function flatten(source: string): string {
 			if (span) edits.push({ start: span[0], end: span[1], text: "" });
 			return SKIP;
 		}
-		if (n.type === "mdxJsxFlowElement") {
-			const span = spanOf(n);
-			if (span) {
-				edits.push({
-					start: span[0],
-					end: span[1],
-					text: `> [interactive] ${altOf(n)}`,
-				});
-			}
-			return SKIP;
+
+		const flow = n.type === "mdxJsxFlowElement";
+		if (!flow && n.type !== "mdxJsxTextElement") return undefined;
+
+		const span = spanOf(n);
+		if (!span) return SKIP;
+
+		// A wrapper loses only its tags, and its content is visited like any
+		// other -- so a component nested inside one still gets flattened.
+		const inner = hasAlt(n) ? null : innerSpan(n);
+		if (inner) {
+			edits.push({ start: span[0], end: inner[0], text: "" });
+			edits.push({ start: inner[1], end: span[1], text: "" });
+			return undefined;
 		}
-		if (n.type === "mdxJsxTextElement") {
-			const span = spanOf(n);
-			if (span) {
-				edits.push({ start: span[0], end: span[1], text: altOf(n) });
-			}
-			return SKIP;
-		}
-		return undefined;
+
+		edits.push({
+			start: span[0],
+			end: span[1],
+			text: flow ? `> [interactive] ${altOf(n)}` : altOf(n),
+		});
+		return SKIP;
 	});
 
 	// Back to front, so an earlier splice cannot move a later offset.

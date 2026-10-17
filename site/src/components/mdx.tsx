@@ -1,9 +1,12 @@
 import { A } from "@solidjs/router";
 import type { JSX } from "solid-js";
-import { Show } from "solid-js";
+import { children, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import type { MdxComponents } from "../lib/content";
+import { classify } from "../lib/links";
 import { BULLET_COLS, MEASURE_COLS, NUMBER_COLS } from "../lib/prose";
+import { ExternalMark } from "./External";
+import { Footnote } from "./Notes";
 import { Rail } from "./Rail";
 
 interface Kids {
@@ -47,27 +50,90 @@ function Ruled(props: { level: 2 | 3; children?: JSX.Element }): JSX.Element {
 	);
 }
 
+/**
+ * A link, routed by where it goes. One that leaves the site carries the ↗,
+ * and its underline moves onto an inner span so the arrow is not underlined
+ * with it -- an inline child cannot take back a decoration its parent drew.
+ */
 function Link(props: { href?: string } & Kids): JSX.Element {
-	const internal = () => props.href?.startsWith("/") ?? false;
-	const external = () => /^[a-z]+:/i.test(props.href ?? "");
+	// Decided once: a compiled post passes its hrefs as literals.
+	const target = classify(props.href);
+
+	if (target.kind === "internal") {
+		return (
+			<A class="prose__link" href={target.path}>
+				{props.children}
+			</A>
+		);
+	}
+
+	if (target.kind === "external") {
+		return (
+			<a
+				class="prose__ext"
+				href={target.url.href}
+				target="_blank"
+				rel="noreferrer noopener"
+			>
+				<span class="prose__link">{props.children}</span>
+				<ExternalMark url={target.url} />
+			</a>
+		);
+	}
+
+	return (
+		<a class="prose__link" href={target.href}>
+			{props.children}
+		</a>
+	);
+}
+
+const BLOCK_TAGS = new Set([
+	"BLOCKQUOTE",
+	"DIV",
+	"FIGURE",
+	"H1",
+	"H2",
+	"H3",
+	"H4",
+	"H5",
+	"H6",
+	"OL",
+	"P",
+	"PRE",
+	"TABLE",
+	"UL",
+]);
+
+/**
+ * Inverse video: ink for paper and paper for ink, over exactly the cells the
+ * text occupies.
+ *
+ * One component for both positions, the way `code` is. Written inside a line
+ * it inverts a run of characters; written around blocks it inverts a
+ * rectangle. MDX hands both to the same name, so it tells them apart by what
+ * it was given -- markdown blocks arrive as elements, a run as text.
+ *
+ * The two draw differently because a run wraps and a block does not; the
+ * .inv and .inverse rules in style.css say why.
+ */
+function Inv(props: Kids): JSX.Element {
+	const kids = children(() => props.children);
+	const block = () =>
+		kids
+			.toArray()
+			.some((n) => n instanceof HTMLElement && BLOCK_TAGS.has(n.tagName));
 
 	return (
 		<Show
-			when={internal()}
+			when={block()}
 			fallback={
-				<a
-					class="prose__link"
-					href={props.href}
-					target={external() ? "_blank" : undefined}
-					rel={external() ? "noreferrer noopener" : undefined}
-				>
-					{props.children}
-				</a>
+				<span class="inv">
+					<span class="inv__ink">{kids()}</span>
+				</span>
 			}
 		>
-			<A class="prose__link" href={props.href ?? "/"}>
-				{props.children}
-			</A>
+			<div class="inverse prose__inv">{kids()}</div>
 		</Show>
 	);
 }
@@ -167,7 +233,15 @@ export const mdxComponents: MdxComponents = {
 			{props.children}
 		</ol>
 	),
-	li: (props: Kids) => <li class="prose__item">{props.children}</li>,
+	// The body wrapper is what makes the item a two-track grid. Without it
+	// every child is its own grid item: a tight item's text, any link or note
+	// in it, a second paragraph and a nested list would each take a cell of
+	// their own and wrap down into the marker column.
+	li: (props: Kids) => (
+		<li class="prose__item">
+			<div class="prose__item-body">{props.children}</div>
+		</li>
+	),
 
 	blockquote: (props: Kids) => (
 		<blockquote class="prose__quote">
@@ -215,4 +289,10 @@ export const mdxComponents: MdxComponents = {
 			alt={props.alt ?? ""}
 		/>
 	),
+
+	// Not markdown tags, but resolved through this table all the same: MDX
+	// looks up any capitalised name a post does not import here. Footnote is
+	// never written by hand -- scripts/notes.ts emits it from `[^1]`.
+	Footnote,
+	Inv,
 };

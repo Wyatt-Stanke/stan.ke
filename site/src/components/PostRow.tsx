@@ -1,10 +1,12 @@
 import type { JSX } from "solid-js";
 import { Show } from "solid-js";
 import type { Post } from "../data/posts";
+import { classify } from "../lib/links";
 import type { RowFit } from "../lib/rows";
 import { POST_ROWS, rowTracks } from "../lib/rows";
 import { formatDuration, KINDS, monthLabel } from "../lib/taxonomy";
 import { cellVars } from "./Cell";
+import { ExternalMark } from "./External";
 
 export interface PostRowProps {
 	post: Post;
@@ -31,6 +33,11 @@ export interface PostRowProps {
  */
 export function PostRow(props: PostRowProps): JSX.Element {
 	const spec = () => KINDS[props.post.kind];
+	const target = () => classify(props.post.href);
+	const external = () => {
+		const t = target();
+		return t.kind === "external" ? t.url : undefined;
+	};
 
 	return (
 		<article
@@ -62,7 +69,15 @@ export function PostRow(props: PostRowProps): JSX.Element {
 				</Show>
 			</span>
 
-			<span class="postrow__title">{props.post.title}</span>
+			{/* The text truncates and the arrow does not: an ellipsis that
+			    took the ↗ with it would hide the one thing that says the row
+			    leaves the site. */}
+			<span class="postrow__title">
+				<span class="postrow__text">{props.post.title}</span>
+				<Show when={external()}>
+					{(url) => <ExternalMark url={url()} />}
+				</Show>
+			</span>
 
 			<span class={props.fit.meta ? "postrow__meta" : "sr-only"}>
 				{formatDuration(props.post.minutes)}
