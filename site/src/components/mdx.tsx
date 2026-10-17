@@ -75,8 +75,8 @@ function Link(props: { href?: string } & Kids): JSX.Element {
 				target="_blank"
 				rel="noreferrer noopener"
 			>
-				<span class="prose__link">{props.children}</span>
-				<ExternalMark url={target.url} />
+				<span class="prose__link">{props.children} <ExternalMark url={target.url} /></span>
+				
 			</a>
 		);
 	}
