@@ -39,7 +39,7 @@ export interface FootnoteProps {
  * note is across the measure from the marker, and this is the time the
  * pointer has to get there; arriving keeps it open.
  */
-const LINGER_MS = 400;
+const LINGER_MS = 100;
 
 const activates = (ev: KeyboardEvent): boolean =>
 	ev.key === "Enter" || ev.key === " ";
