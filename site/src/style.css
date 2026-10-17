@@ -613,6 +613,36 @@ body {
  * moves: rules, rails, markers and code are pulled back onto the cell below,
  * and the chrome around the article never sees this rule at all.
  */
+/*
+ * The reset at the top pins every element it names to one row: right in
+ * mono, and in prose the reason the leading below never reached the text --
+ * a <p> with a line-height of its own does not inherit one. Inside the body
+ * those elements inherit instead, which resolves to the same row in mono and
+ * to the reading leading in prose. This is the reset's specificity and later,
+ * so it wins; the rules further down that pin cell-metric elements to a row
+ * win over it the same way.
+ */
+.prose
+:where(
+	p,
+	ul,
+	ol,
+	li,
+	blockquote,
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6,
+	td,
+	th,
+	code,
+	figcaption
+) {
+	line-height: inherit;
+}
+
 [data-typeface="prose"] .prose {
 	font-family: var(--prose-family);
 	font-size: var(--prose-size);
@@ -742,6 +772,8 @@ h3.prose__h > .prose__h-fit {
 .prose__note {
 	display: grid;
 	grid-template-columns: calc(var(--note-mark-cols) * var(--cw)) 1fr;
+	/* As .prose__item: the number is pinned to a row, the text may not be. */
+	align-items: baseline;
 	color: var(--muted);
 	/* A note in a quote is not part of the quotation, nor one in a heading
 	   part of the heading. */
@@ -899,9 +931,13 @@ h3.prose__h > .prose__h-fit {
 
 /* ---- Lists ---- */
 
+/* Baseline, not start: the marker is pinned to a row and the text beside it
+   is not in prose, so their tops are not where their first lines sit. In mono
+   the two lines are the same and this is a no-op. */
 .prose__item {
 	display: grid;
 	grid-template-columns: calc(var(--marker-cols) * var(--cw)) 1fr;
+	align-items: baseline;
 }
 
 /* So a long unbreakable run -- a code block, a URL -- scrolls or wraps inside
