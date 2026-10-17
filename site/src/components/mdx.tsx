@@ -52,8 +52,8 @@ function Ruled(props: { level: 2 | 3; children?: JSX.Element }): JSX.Element {
 
 /**
  * A link, routed by where it goes. One that leaves the site carries the ↗,
- * and its underline moves onto an inner span so the arrow is not underlined
- * with it -- an inline child cannot take back a decoration its parent drew.
+ * underlined with the rest of it, a no-break space from the text so the arrow
+ * cannot wrap onto a line of its own.
  */
 function Link(props: { href?: string } & Kids): JSX.Element {
 	// Decided once: a compiled post passes its hrefs as literals.
@@ -70,13 +70,14 @@ function Link(props: { href?: string } & Kids): JSX.Element {
 	if (target.kind === "external") {
 		return (
 			<a
-				class="prose__ext"
+				class="prose__link"
 				href={target.url.href}
 				target="_blank"
 				rel="noreferrer noopener"
 			>
-				<span class="prose__link">{props.children} <ExternalMark url={target.url} /></span>
-				
+				{props.children}
+				{" "}
+				<ExternalMark url={target.url} />
 			</a>
 		);
 	}

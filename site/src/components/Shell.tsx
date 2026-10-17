@@ -13,7 +13,7 @@ import {
 import { createGrid, type FittedCell, fitVars } from "../lib/cell";
 import { figSize, render } from "../lib/figlet";
 import { createLayout, layoutVars } from "../lib/layout";
-import { placeTip, type TipBox } from "../lib/tip";
+import { placeTip, type TipAnchor, type TipBox } from "../lib/tip";
 import { typeface } from "../lib/typeface";
 import { type BarState, CharScrollbar, FULL_BAR } from "./CharScrollbar";
 import { Header } from "./Header";
@@ -45,10 +45,13 @@ export interface ShellApi {
 	rows: () => number;
 	cell: () => FittedCell;
 	setBar: (state: BarState) => void;
-	/** Lays `text` over the grid beside `anchor`, replacing any tip shown. */
-	showTip: (anchor: HTMLElement, text: string) => void;
-	/** Clears the tip, but only if `anchor` is the one it belongs to. */
-	hideTip: (anchor: HTMLElement) => void;
+	/**
+	 * Lays `owner`'s `text` over the grid beside `at`, replacing any tip
+	 * shown. One owner can move its tip, from character to character.
+	 */
+	showTip: (owner: Element, text: string, at: TipAnchor) => void;
+	/** Clears the tip, but only if `owner` is the one it belongs to. */
+	hideTip: (owner: Element) => void;
 }
 
 const ShellContext = createContext<ShellApi>();
@@ -81,39 +84,40 @@ export function Shell(props: { children?: JSX.Element }): JSX.Element {
 	 * page, for the same reason the regions are: the grid's own tracks are the
 	 * only lengths guaranteed to land on cell boundaries.
 	 *
-	 * A scroll re-places it against its mark rather than dropping it. Focus
+	 * A scroll re-places it against its anchor rather than dropping it. Focus
 	 * scrolls a link into view and the scroll event lands a frame after the
 	 * focus that showed the tip, so dropping would lose every keyboard tip
 	 * for a link that was not already on screen.
 	 */
 	const [tip, setTip] = createSignal<{
-		anchor: HTMLElement;
+		owner: Element;
 		text: string;
+		at: TipAnchor;
 		box: TipBox;
 	}>();
 
-	const showTip = (anchor: HTMLElement, text: string) => {
+	const showTip = (owner: Element, text: string, at: TipAnchor) => {
 		if (!app) return;
 		const box = placeTip(
-			anchor.getBoundingClientRect(),
+			at.getBoundingClientRect(),
 			app.getBoundingClientRect(),
 			grid.cell(),
 			layout().content,
 			text,
 		);
-		setTip(box ? { anchor, text, box } : undefined);
+		setTip(box ? { owner, text, at, box } : undefined);
 	};
 
-	const hideTip = (anchor: HTMLElement) => {
-		if (tip()?.anchor === anchor) setTip(undefined);
+	const hideTip = (owner: Element) => {
+		if (tip()?.owner === owner) setTip(undefined);
 	};
 
 	const replaceTip = () => {
 		const t = tip();
-		if (t) showTip(t.anchor, t.text);
+		if (t) showTip(t.owner, t.text, t.at);
 	};
 
-	// A new cell or layout can unmount the mark outright, so this one drops.
+	// A new cell or layout can unmount the anchor outright, so this one drops.
 	createEffect(
 		on([grid.cell, layout], () => setTip(undefined), { defer: true }),
 	);
