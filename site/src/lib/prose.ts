@@ -48,8 +48,12 @@ export const SIDENOTE_MIN_COLS = 20;
 /** Widest margin a note is set to, for the same reason the measure is capped. */
 export const SIDENOTE_MAX_COLS = 34;
 
-/** Blank rows between two margin notes stacked because they would collide. */
-export const SIDENOTE_STACK_GAP = 1;
+/**
+ * Furthest a margin note may sit below its marker's row. Past this the margin
+ * stops reading as level with the text, so a note that cannot land within it
+ * is not set there at all -- see layoutNotes() in lib/notes.ts.
+ */
+export const SIDENOTE_MAX_DRIFT = 2;
 
 /** Margin width in cells at this content width, or 0 for inline notes. */
 export function sidenoteCols(available: number): number {
