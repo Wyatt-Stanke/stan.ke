@@ -41,6 +41,9 @@ interface JsxElement extends HNode {
 	children: HNode[];
 }
 
+const isNote = (n: HNode | undefined): boolean =>
+	n?.type === "mdxJsxTextElement" && (n as JsxElement).name === "Footnote";
+
 const isElement = (n: HNode, tag?: string): n is HElement =>
 	n.type === "element" &&
 	(tag === undefined || (n as HElement).tagName === tag);
@@ -127,6 +130,11 @@ export function rehypeNotes() {
 		};
 		collect(list);
 
+		// GFM numbers notes 1..n, so the widest number is the count's. Every
+		// note gets it, so the margin's number track is one width down the
+		// page instead of stepping right at the tenth note.
+		const digits = String(bodies.size).length;
+
 		const rewrite = (parent: HNode) => {
 			const kids = parent.children;
 			if (!kids) return;
@@ -154,6 +162,19 @@ export function rehypeNotes() {
 							type: "mdxJsxAttribute",
 							name: "id",
 							value: noteId((ref as HElement).properties.id),
+						},
+						{
+							type: "mdxJsxAttribute",
+							name: "digits",
+							value: String(digits),
+						},
+						// Cited straight after another note, with nothing
+						// between: `[^a][^b]`. The markers are digits, so
+						// without a separator 7 then 8 reads as 78.
+						{
+							type: "mdxJsxAttribute",
+							name: "joined",
+							value: String(isNote(kids[i - 1])),
 						},
 					],
 					children: asInline(li),

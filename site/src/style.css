@@ -723,10 +723,11 @@ h3.prose__h > .prose__h-fit {
  */
 .prose__fnref {
 	font-family: var(--font-family);
+	cursor: pointer;
 }
 
-.prose__fnref[role="button"] {
-	cursor: pointer;
+.prose__fnsep {
+	font-family: var(--font-family);
 }
 
 .prose__fnref:focus-visible {
@@ -735,7 +736,9 @@ h3.prose__h > .prose__h-fit {
 }
 
 /* Marker in its own track, so a note that wraps hangs against its text the
-   way a list item does. The track is the number's width plus one cell. */
+   way a list item does. The track is the post's widest number plus one cell,
+   and the number is set to its right the way an ordered list's is, so notes
+   9 and 10 start their text in the same column. */
 .prose__note {
 	display: grid;
 	grid-template-columns: calc(var(--note-mark-cols) * var(--cw)) 1fr;
@@ -749,21 +752,9 @@ h3.prose__h > .prose__h-fit {
 	margin-block: 0;
 }
 
-/* The grid above outranks the UA's [hidden] rule, so it is restated. */
-.prose__note[hidden] {
-	display: none;
-}
-
-/* lib/notes.ts sets top and left; this is only the width. */
-.prose__note[data-place="margin"] {
-	position: absolute;
-	inline-size: calc(var(--side-cols) * var(--cw));
-}
-
-/* Opened from its marker: a block in the middle of the paragraph, so it lands
-   on the row under the line that was tapped. */
-.prose__note[data-place="inline"] {
-	margin-inline-start: calc(2 * var(--cw));
+.prose__note-mark {
+	text-align: end;
+	padding-inline-end: var(--cw);
 }
 
 .prose__note-body {
@@ -777,6 +768,79 @@ h3.prose__h > .prose__h-fit {
 
 .prose__note-p + .prose__note-p {
 	margin-block-start: var(--block-space);
+}
+
+/* The grid above outranks the UA's [hidden] rule, so it is restated. */
+.prose__note[hidden] {
+	display: none;
+}
+
+/*
+ * lib/notes.ts sets top, left and data-fit; this is the width. The last cell
+ * is held back as padding, so an opened note can take one more on the other
+ * side and be inverted with a cell of air round its text without rewrapping.
+ */
+.prose__note[data-place="margin"] {
+	position: absolute;
+	box-sizing: border-box;
+	inline-size: calc(var(--side-cols) * var(--cw));
+	padding-inline-end: var(--cw);
+}
+
+/* Paragraphs run on in the margin, marked by an indent rather than a blank
+   row, so a note's height is its line count and a cut is a line count too. */
+.prose__note[data-place="margin"] .prose__note-p + .prose__note-p {
+	margin-block-start: 0;
+	text-indent: calc(2 * var(--cw));
+}
+
+/*
+ * Cut to its first line, ending on an ellipsis -- see NoteFit in lib/notes.ts
+ * for why never to more than one. Paragraphs run on so the first line is the
+ * first line of the note, whatever it holds. Truncated the way a post row's
+ * title is: the clip edge is padded out past the ink and pulled back, since
+ * with a single line there is nothing below it to show.
+ */
+.prose__note[data-place="margin"][data-fit="clamped"]:not([data-open])
+.prose__note-body {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	padding-block: var(--ink-overhang);
+	margin-block: calc(-1 * var(--ink-overhang));
+}
+
+.prose__note[data-place="margin"][data-fit="clamped"]:not([data-open])
+	.prose__note-p {
+	display: inline;
+}
+
+.prose__note[data-place="margin"][data-fit="clamped"]:not([data-open])
+	.prose__note-p
+	+ .prose__note-p::before {
+	content: " ";
+}
+
+/* No room near its line. Clipped rather than hidden, so a screen reader still
+   reads it where it is cited, as it does every other margin note. */
+.prose__note[data-place="margin"][data-fit="deferred"]:not([data-open]) {
+	clip-path: inset(50%);
+}
+
+/* Open: all of it, in inverse video, over whatever the margin holds below its
+   line, one cell wider on the left so the text keeps its place. */
+.prose__note[data-place="margin"][data-open] {
+	z-index: 1;
+	inline-size: calc((var(--side-cols) + 1) * var(--cw));
+	margin-inline-start: calc(-1 * var(--cw));
+	padding-inline-start: var(--cw);
+	color: var(--text-color);
+}
+
+/* Opened from its marker: a block in the middle of the paragraph, so it lands
+   on the row under the line that was tapped. */
+.prose__note[data-place="inline"] {
+	margin-inline-start: calc(2 * var(--cw));
 }
 
 /* ---- Rails: quotes and code ---- */
@@ -968,11 +1032,16 @@ h3.prose__h > .prose__h-fit {
  */
 .inverse {
 	position: relative;
+}
+
+.inverse,
+.prose__note[data-place="margin"][data-open] {
 	isolation: isolate;
 	background: var(--background);
 }
 
-.inverse::after {
+.inverse::after,
+.prose__note[data-place="margin"][data-open]::after {
 	content: "";
 	position: absolute;
 	inset: 0;
@@ -1145,6 +1214,14 @@ h3.prose__h > .prose__h-fit {
  * thematic break and the header's separator -- come back as hairlines, and
  * each keeps the row its character version occupied.
  */
+/* The cell-face glyphs that sit inside running text. Beside Roboto, a
+   second face on a line with a fixed line-height stands its line box on two
+   different baselines and the line grows; with no height of its own a glyph
+   is drawn the same and the line keeps Roboto's. */
+[data-typeface="prose"] .prose :is(.ext, .prose__fnref, .prose__fnsep) {
+	line-height: 0;
+}
+
 [data-typeface="prose"] .prose__underline {
 	display: none;
 }
