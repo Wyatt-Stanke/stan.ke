@@ -1,11 +1,18 @@
 import type { JSX } from "solid-js";
 import { For, onMount } from "solid-js";
+import type { Post } from "../data/posts";
+import { classify } from "../lib/links";
 import type { Group, RowFit } from "../lib/rows";
 import { GROUP_GAP, TAIL_ROWS, YEAR_GAP } from "../lib/rows";
 import { attachScroll, type ScrollView } from "../lib/scroll";
 import { cellVars } from "./Cell";
 import { PostRow } from "./PostRow";
 import { YearHeader } from "./YearHeader";
+
+/** A row that leaves the site opens in a tab, like a prose link that does. */
+const EXTERNAL = { target: "_blank", rel: "noreferrer noopener" } as const;
+
+const leaves = (post: Post): boolean => classify(post.href).kind === "external";
 
 export interface PostListProps {
 	groups: Group[];
@@ -61,6 +68,9 @@ export function PostList(props: PostListProps): JSX.Element {
 											<a
 												class="postlist__link"
 												href={post.href}
+												{...(leaves(post)
+													? EXTERNAL
+													: {})}
 											>
 												<PostRow
 													post={post}

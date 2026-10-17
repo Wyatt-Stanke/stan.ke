@@ -50,14 +50,16 @@ export const KINDS: Record<Kind, KindSpec> = {
 	video: { medium: "video", label: "video", glyph: "♫" },
 	series: { medium: "video", label: "series", glyph: "♬" },
 
-	// Unordered, so three distinct marks rather than a ranked family. A mark
-	// needs enough ink to survive the smallest cell size -- U+2192 ARROW is a
-	// single thin horizontal stroke and reads as a hyphen there.
+	// Unordered, so distinct marks rather than a ranked family. A mark needs
+	// enough ink to survive the smallest cell size -- U+2192 ARROW is a single
+	// thin horizontal stroke and reads as a hyphen there, and U+2194, the
+	// obvious "carried across" mark for a port, is no better.
 	site: { medium: "interactive", label: "site", glyph: "§" },
 	game: { medium: "interactive", label: "game", glyph: "★" },
 	app: { medium: "interactive", label: "app", glyph: "¤" },
-	// TODO: Change webport glyph to something in the Libertinus Mono charset.
-	webport: { medium: "interactive", label: "webport", glyph: "✸" },
+	// The one mark in the font that already means "on the web". Not U+2197,
+	// which would have fit too: that is the external-link mark in prose.
+	webport: { medium: "interactive", label: "webport", glyph: "@" },
 };
 
 /** Width of the label column, derived so it can never drift from the table. */

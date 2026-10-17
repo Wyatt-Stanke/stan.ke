@@ -8,6 +8,7 @@ import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
 import { type PostSource, readPosts, toHtml } from "./scripts/content";
+import { rehypeNotes } from "./scripts/notes";
 
 const CONTENT_DIR = fileURLToPath(new URL("./src/content", import.meta.url));
 
@@ -185,8 +186,12 @@ export default defineConfig({
 					remarkGfm,
 				],
 				// Highlighting runs here, at build time, so the app ships
-				// static spans and no highlighter.
-				rehypePlugins: [[rehypeHighlight, { detect: false }]],
+				// static spans and no highlighter. Notes go after it, so a
+				// footnote's code is highlighted before it is copied out.
+				rehypePlugins: [
+					[rehypeHighlight, { detect: false }],
+					rehypeNotes,
+				],
 			}),
 		},
 		solid({ extensions: [".mdx"] }),

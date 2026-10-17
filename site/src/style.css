@@ -408,6 +408,15 @@ body {
 	margin-block-end: calc(var(--group-gap) * var(--rh));
 }
 
+/*
+ * The mark after a link that leaves the site. One cell of the cell face in a
+ * mono run; pinned to that face in proportional prose as well, since Roboto
+ * has no ↗ and a fallback would bring its own advance.
+ */
+.ext {
+	font-family: var(--font-family);
+}
+
 /* ---- One post row ---- */
 
 /*
@@ -449,8 +458,23 @@ body {
 	text-align: end;
 }
 
+/* Flex, so the ↗ of a row that leaves the site is pinned after the text and
+   the ellipsis comes out of the text instead. The text repeats the clip-box
+   trick above because it is now the box doing the clipping. */
 .postrow__title {
+	display: flex;
+}
+
+.postrow__text {
+	min-inline-size: 0;
+	overflow: hidden;
 	text-overflow: ellipsis;
+	padding-block: var(--ink-overhang);
+	margin-block: calc(-1 * var(--ink-overhang));
+}
+
+.postrow__title > .ext {
+	flex: none;
 }
 
 /* Keyed off the attribute alone: colour is the medium axis wherever it is
@@ -486,7 +510,7 @@ body {
 	font-variant-emoji: text;
 }
 
-.postlist__link:hover .postrow__title {
+.postlist__link:hover .postrow__text {
 	text-decoration: underline;
 }
 
@@ -577,6 +601,9 @@ body {
 /* ---- Prose ---- */
 
 .prose {
+	/* Positioned so it is the box margin notes are measured from; see
+	   lib/notes.ts. */
+	position: relative;
 	margin-block-start: calc(var(--head-gap) * var(--rh));
 	--block-space: calc(var(--block-gap) * var(--rh));
 }
@@ -605,10 +632,11 @@ body {
 	margin-block-start: 0;
 }
 
-/* Blocks nested inside a rail or a list item get the same rhythm, without the
-   first-child exception mattering. */
+/* Blocks nested inside a rail, a list item or an inverted block get the same
+   rhythm, without the first-child exception mattering. */
 .prose__railed > * + *,
-.prose__item > * + * {
+.prose__item-body > * + *,
+.prose__inv > * + * {
 	margin-block-start: var(--block-space);
 }
 
@@ -620,7 +648,8 @@ body {
 .prose__underline,
 .prose__code-block,
 .prose__table,
-.prose__item::before {
+.prose__item::before,
+.prose__note-mark {
 	font-family: var(--font-family);
 	font-size: var(--fs);
 	line-height: var(--rh);
@@ -684,6 +713,72 @@ h3.prose__h > .prose__h-fit {
 	text-underline-offset: 0.15em;
 }
 
+/* ---- Footnotes ---- */
+
+/*
+ * The marker is superscript *characters* in the cell face, set at full size
+ * on the baseline -- see superscript() in lib/notes.ts for why it is never a
+ * raised, shrunken <sup>. Pinned to the cell face in prose too, which has no
+ * superscripts past three.
+ */
+.prose__fnref {
+	font-family: var(--font-family);
+}
+
+.prose__fnref[role="button"] {
+	cursor: pointer;
+}
+
+.prose__fnref:focus-visible {
+	outline: calc(0.1 * var(--rh)) solid currentColor;
+	outline-offset: 0;
+}
+
+/* Marker in its own track, so a note that wraps hangs against its text the
+   way a list item does. The track is the number's width plus one cell. */
+.prose__note {
+	display: grid;
+	grid-template-columns: calc(var(--note-mark-cols) * var(--cw)) 1fr;
+	color: var(--muted);
+	/* A note in a quote is not part of the quotation, nor one in a heading
+	   part of the heading. */
+	font-style: normal;
+	font-weight: normal;
+	/* In a tight list item the note is a direct child of the item body, and
+	   the block rhythm's `* + *` would push it down a row. */
+	margin-block: 0;
+}
+
+/* The grid above outranks the UA's [hidden] rule, so it is restated. */
+.prose__note[hidden] {
+	display: none;
+}
+
+/* lib/notes.ts sets top and left; this is only the width. */
+.prose__note[data-place="margin"] {
+	position: absolute;
+	inline-size: calc(var(--side-cols) * var(--cw));
+}
+
+/* Opened from its marker: a block in the middle of the paragraph, so it lands
+   on the row under the line that was tapped. */
+.prose__note[data-place="inline"] {
+	margin-inline-start: calc(2 * var(--cw));
+}
+
+.prose__note-body {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+
+.prose__note-p {
+	display: block;
+}
+
+.prose__note-p + .prose__note-p {
+	margin-block-start: var(--block-space);
+}
+
 /* ---- Rails: quotes and code ---- */
 
 .prose__quote,
@@ -745,6 +840,12 @@ h3.prose__h > .prose__h-fit {
 	grid-template-columns: calc(var(--marker-cols) * var(--cw)) 1fr;
 }
 
+/* So a long unbreakable run -- a code block, a URL -- scrolls or wraps inside
+   the text track instead of widening it past the measure. */
+.prose__item-body {
+	min-inline-size: 0;
+}
+
 /* Its own track, not a negative text-indent: a wrapped line has to hang
    against the text, and in the proportional face there is no indent to
    negate. */
@@ -769,7 +870,7 @@ h3.prose__h > .prose__h-fit {
 	padding-inline-end: var(--cw);
 }
 
-.prose__item > .prose__list {
+.prose__item-body > .prose__list {
 	margin-block-start: 0;
 }
 
@@ -811,6 +912,92 @@ h3.prose__h > .prose__h-fit {
 
 .missing {
 	color: var(--muted);
+}
+
+/* ---- Inverse video ---- */
+
+/*
+ * A run of text. It wraps, so the inversion has to be drawn per line, and the
+ * only thing CSS draws per line is an inline's background. That background
+ * would cover the font's content area, 1.14 rows tall, so it is sized down to
+ * one row and centred -- a line box sits in the middle of its content area --
+ * which makes the band exactly the cells the run occupies.
+ *
+ * That alone would cost the descenders: a g's tail runs past the row, out of
+ * the band, and stays paper-coloured on paper. So .inv__ink draws the glyphs
+ * with a gradient of its own -- paper inside the band, ink outside it --
+ * clipped to the text, and the tail stays visible below the band the way a
+ * terminal's inverse video looks.
+ */
+.inv,
+.prose__fnref[aria-expanded="true"] {
+	background:
+		linear-gradient(var(--text-color), var(--text-color)) 0 50% / 100%
+		var(--rh) no-repeat;
+	color: var(--background);
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+	.inv__ink {
+		--band-start: calc(50% - var(--rh) / 2);
+		--band-end: calc(50% + var(--rh) / 2);
+		background: linear-gradient(
+			var(--text-color) var(--band-start),
+			var(--background) var(--band-start) var(--band-end),
+			var(--text-color) var(--band-end)
+		);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+	}
+}
+
+/*
+ * A rectangle: a block of prose, or the shell's link tip. One box, so it can
+ * be inverted the literal way -- a white layer over it in `difference`, which
+ * maps ink to paper and paper to ink, and anything coloured to its opposite.
+ * Ink that overhangs the box is outside the layer and keeps its colour, so
+ * descenders on the last row survive here too.
+ *
+ * Isolated with a paper background of its own so the blend has something to
+ * invert inside the box whatever is, or is not, painted behind it.
+ */
+.inverse {
+	position: relative;
+	isolation: isolate;
+	background: var(--background);
+}
+
+.inverse::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	mix-blend-mode: difference;
+	pointer-events: none;
+}
+
+/* Whole cells by construction: the padding is one, and the text inside is a
+   whole number of them wide whether it wraps or not. */
+.prose__inv {
+	box-sizing: border-box;
+	inline-size: fit-content;
+	max-inline-size: 100%;
+	padding-inline: var(--cw);
+}
+
+/* ---- Link tip: a grid item of .app, see Shell ---- */
+
+.tip {
+	z-index: 2;
+	line-height: var(--rh);
+	white-space: pre;
+	pointer-events: none;
+	user-select: none;
 }
 
 /* ---- Code highlighting ---- */

@@ -1,9 +1,11 @@
 import type { JSX } from "solid-js";
 import {
 	createContext,
+	createEffect,
 	createMemo,
 	createSignal,
 	Match,
+	on,
 	Show,
 	Switch,
 	useContext,
@@ -11,6 +13,7 @@ import {
 import { createGrid, type FittedCell, fitVars } from "../lib/cell";
 import { figSize, render } from "../lib/figlet";
 import { createLayout, layoutVars } from "../lib/layout";
+import { placeTip, type TipBox } from "../lib/tip";
 import { typeface } from "../lib/typeface";
 import { type BarState, CharScrollbar, FULL_BAR } from "./CharScrollbar";
 import { Header } from "./Header";
@@ -42,6 +45,10 @@ export interface ShellApi {
 	rows: () => number;
 	cell: () => FittedCell;
 	setBar: (state: BarState) => void;
+	/** Lays `text` over the grid beside `anchor`, replacing any tip shown. */
+	showTip: (anchor: HTMLElement, text: string) => void;
+	/** Clears the tip, but only if `anchor` is the one it belongs to. */
+	hideTip: (anchor: HTMLElement) => void;
 }
 
 const ShellContext = createContext<ShellApi>();
@@ -58,6 +65,7 @@ export function useShell(): ShellApi {
  */
 export function Shell(props: { children?: JSX.Element }): JSX.Element {
 	let root!: HTMLDivElement;
+	let app: HTMLElement | undefined;
 
 	const grid = createGrid(() => root);
 
@@ -67,6 +75,48 @@ export function Shell(props: { children?: JSX.Element }): JSX.Element {
 	// The bar is written by whichever page is mounted and never read back, the
 	// same one-way rule scroll position follows.
 	const [bar, setBar] = createSignal<BarState>(FULL_BAR);
+
+	/*
+	 * The tip is a grid item of `.app`, not something positioned inside the
+	 * page, for the same reason the regions are: the grid's own tracks are the
+	 * only lengths guaranteed to land on cell boundaries.
+	 *
+	 * A scroll re-places it against its mark rather than dropping it. Focus
+	 * scrolls a link into view and the scroll event lands a frame after the
+	 * focus that showed the tip, so dropping would lose every keyboard tip
+	 * for a link that was not already on screen.
+	 */
+	const [tip, setTip] = createSignal<{
+		anchor: HTMLElement;
+		text: string;
+		box: TipBox;
+	}>();
+
+	const showTip = (anchor: HTMLElement, text: string) => {
+		if (!app) return;
+		const box = placeTip(
+			anchor.getBoundingClientRect(),
+			app.getBoundingClientRect(),
+			grid.cell(),
+			layout().content,
+			text,
+		);
+		setTip(box ? { anchor, text, box } : undefined);
+	};
+
+	const hideTip = (anchor: HTMLElement) => {
+		if (tip()?.anchor === anchor) setTip(undefined);
+	};
+
+	const replaceTip = () => {
+		const t = tip();
+		if (t) showTip(t.anchor, t.text);
+	};
+
+	// A new cell or layout can unmount the mark outright, so this one drops.
+	createEffect(
+		on([grid.cell, layout], () => setTip(undefined), { defer: true }),
+	);
 
 	const style = createMemo(() => ({
 		...layoutVars(layout(), grid.cols(), grid.rows()),
@@ -78,12 +128,23 @@ export function Shell(props: { children?: JSX.Element }): JSX.Element {
 		rows: () => layout().content.innerRows,
 		cell: grid.cell,
 		setBar,
+		showTip,
+		hideTip,
 	};
 
 	return (
 		<div ref={root} class="app-root">
 			<Show when={grid.fontsReady() && grid.cell().cw > 0}>
 				<main
+					ref={(el) => {
+						app = el;
+						// scroll does not bubble, so this listens in capture:
+						// one listener for every scroller the pages bring.
+						el.addEventListener("scroll", replaceTip, {
+							capture: true,
+							passive: true,
+						});
+					}}
 					class="app"
 					data-mode={layout().mode}
 					data-chrome={layout().chrome}
@@ -140,6 +201,21 @@ export function Shell(props: { children?: JSX.Element }): JSX.Element {
 					</div>
 
 					<CharScrollbar count={layout().bar.rows} state={bar()} />
+
+					<Show when={tip()}>
+						{(t) => (
+							<div
+								class="tip inverse"
+								aria-hidden="true"
+								style={{
+									"grid-column": `${t().box.col} / span ${t().box.cols}`,
+									"grid-row": `${t().box.row} / span 1`,
+								}}
+							>
+								{t().box.text}
+							</div>
+						)}
+					</Show>
 				</main>
 			</Show>
 		</div>

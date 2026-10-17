@@ -2,11 +2,14 @@ import { A } from "@solidjs/router";
 import type { JSX } from "solid-js";
 import { createEffect, onCleanup, onMount, Show } from "solid-js";
 import { type Entry, hrefFor } from "../lib/content";
+import { placeNotes } from "../lib/notes";
 import {
 	BLOCK_GAP,
 	HEAD_GAP,
 	HEADING_LEAD,
 	measureCols,
+	SIDENOTE_GAP,
+	sidenoteCols,
 	TAIL_ROWS,
 } from "../lib/prose";
 import { attachScroll, isEditable } from "../lib/scroll";
@@ -15,6 +18,7 @@ import { setTypeface, toggleTypeface, typeface } from "../lib/typeface";
 import { cellVars } from "./Cell";
 import { barState } from "./CharScrollbar";
 import { mdxComponents } from "./mdx";
+import { NotesContext } from "./Notes";
 import { Rule } from "./Rule";
 import { useShell } from "./Shell";
 
@@ -59,11 +63,26 @@ function TypefaceToggle(): JSX.Element {
 export function Reader(props: { entry: Entry }): JSX.Element {
 	let el!: HTMLElement;
 	let body!: HTMLElement;
+	let prose!: HTMLDivElement;
 
 	const shell = useShell();
 	const meta = () => props.entry.meta;
 	const spec = () => KINDS[meta().kind];
 	const measure = () => measureCols(shell.cols());
+	const side = () => sidenoteCols(shell.cols());
+
+	// Margin notes hang off line positions, so anything that can move a line
+	// re-places them: the measure, the cell, the face, and -- via the observer
+	// below -- the body reflowing for any reason of its own.
+	const place = () => {
+		if (side() === 0) return;
+		const { cw, rh } = shell.cell();
+		placeNotes(prose, (measure() + SIDENOTE_GAP) * cw, rh);
+	};
+	createEffect(() => {
+		typeface();
+		place();
+	});
 
 	/*
 	 * What the document says about itself, kept the same however the page was
@@ -122,7 +141,10 @@ export function Reader(props: { entry: Entry }): JSX.Element {
 		// that height mostly do not fire a scroll event: a reflow when the
 		// measure narrows, an image arriving, and -- the one no signal here
 		// can see -- Roboto swapping in after its own late request.
-		const ro = new ResizeObserver(() => controls.sync());
+		const ro = new ResizeObserver(() => {
+			place();
+			controls.sync();
+		});
 		ro.observe(el);
 		ro.observe(body);
 		onCleanup(() => ro.disconnect());
@@ -157,7 +179,10 @@ export function Reader(props: { entry: Entry }): JSX.Element {
 			<article
 				ref={body}
 				class="reader__body"
-				style={{ "--measure": String(measure()) }}
+				style={{
+					"--measure": String(measure()),
+					"--side-cols": String(side()),
+				}}
 			>
 				<header class="reader__head">
 					<div class="reader__nav">
@@ -187,8 +212,10 @@ export function Reader(props: { entry: Entry }): JSX.Element {
 					<Rule cols={measure()} />
 				</header>
 
-				<div class="prose">
-					<Content components={mdxComponents} />
+				<div ref={prose} class="prose">
+					<NotesContext.Provider value={{ side }}>
+						<Content components={mdxComponents} />
+					</NotesContext.Provider>
 				</div>
 			</article>
 		</section>

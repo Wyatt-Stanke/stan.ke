@@ -34,7 +34,9 @@ Inline code such as `createGrid()` stays in Libertinus Mono whatever the body is
 set in, because a monospaced identifier that reflows into a proportional face
 stops looking like code. Links are [plain underlines](/) in the ink colour: the
 two colour axes on this site already mean *medium*, and a third meaning would
-collide with them.
+collide with them. A link that leaves the site, like the one to
+[the typeface's source](https://github.com/alerque/libertinus), ends in an
+arrow, and hovering the arrow shows where it goes.
 
 > A blockquote is indented behind a rail of border characters, drawn with the
 > same glyph as the pane border rather than a CSS edge. The rail is clipped to
@@ -55,6 +57,44 @@ Ordered lists get a wider marker track, since the number can reach two digits:
 1. Parse the frontmatter into a post entry.
 2. Render the body through the component map.
 3. Snap the result onto the character grid.
+
+## Notes
+
+A footnote is a `[^label]` in the text and a definition anywhere in the
+file.[^where] Where the screen has room for a margin beside the measure, the
+note hangs there, level with the line that cites it; anywhere narrower, the
+marker opens it directly under that line instead.
+
+A citation is a footnote whose body is the source.[^source] Notes cited close
+together stack in the margin rather than overlap,[^stack] and a note can be
+cited from inside a list or a quote:
+
+- An item that carries a note of its own.[^item]
+
+> A quotation, cited where it ends.[^quote]
+
+[^where]: GFM numbers notes by first citation, so the label is only a name.
+
+[^source]: [Libertinus fonts](https://github.com/alerque/libertinus), released
+    under the SIL Open Font License 1.1.
+
+[^stack]: In the margin, this one is pushed down to clear the note above it.
+
+[^item]: A note set from inside a list item.
+
+[^quote]: And one from inside a quote, set upright rather than in italics.
+
+## Inverse video
+
+<Inv>Inv</Inv> inverts a run of text over exactly the cells it occupies: a
+single <Inv>c</Inv>haracter, or a run long enough to <Inv>wrap from one line
+onto the next as easily as the text around it</Inv>. Descenders such as
+<Inv>g, j, p, q and y</Inv> keep their tails below the band.
+
+<Inv>
+Written around blocks, it inverts a rectangle instead: whole cells wide and
+whole rows tall, with one cell of padding at each side.
+</Inv>
 
 ## Interactive
 
